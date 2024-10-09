@@ -1,0 +1,63 @@
+import cv2
+import numpy as np
+from typing import List
+
+from Vision.VisionObject import VisionObject
+from Vision.VisualObjectIdentifier import VisualObjectIdentifier
+
+class ColorObjectIdentifier(VisualObjectIdentifier):
+    def __init__(self, color_lower_bound: np.array, color_upper_bound: np.array):
+        self.color_lower_bound = color_lower_bound
+        self.color_upper_bound = color_upper_bound
+        # lower_blue = np.array([100, 150, 50])
+        # upper_blue = np.array([140, 255, 255])
+
+    def update_range(self,lb,ub):
+        self.color_lower_bound=lb
+        self.color_upper_bound=ub
+
+    def set_color_lower_bound(self, color_lower_bound: np.array):
+        self.color_lower_bound = color_lower_bound
+
+    def set_color_upper_bound(self, color_upper_bound: np.array):
+        self.color_upper_bound = color_upper_bound
+
+    def extract_objects(self, hsv: cv2.typing.MatLike) -> List[VisionObject]:
+        
+        image_height: int = hsv.shape[0]
+        image_width: int = hsv.shape[1]
+        
+        #simulation
+        mask = cv2.inRange(hsv, self.color_lower_bound, self.color_upper_bound)
+
+        # #morphological operations to remove noise and fill gaps
+        mask = cv2.erode(mask, None, iterations=2)
+        mask = cv2.dilate(mask, None, iterations=2)
+
+        #find largest contour in the mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:            
+            #find the largest contour and create its bounding box
+            largest_contour = max(contours, key=cv2.contourArea)
+            (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+            center = (int(x), int(y))
+            radius = int(radius)
+                
+            return [VisionObject(image_height, image_width, "blue_object", int(x), int(y), radius, hsv, mask)]                
+        else:
+            return []
+    
+        # hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        # mask = cv2.inRange(hsv, self.color_lower_bound, self.color_upper_bound)
+        # contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # objects = []
+        # for contour in contours:
+        #     area = cv2.contourArea(contour)
+        #     if area > 100:
+        #         x, y, w, h = cv2.boundingRect(contour)
+        #         objects.append(VisionObject.VisionObject(x, y, w, h, self.color_lower_bound))
+        # return objects
+
+    def process_frame(self, image: cv2.typing.MatLike) -> List[VisionObject]:
+        return self.extract_objects(image)
+        

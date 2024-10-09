@@ -1,0 +1,281 @@
+#:kivy 2.3.0
+<Label>:
+    font_size: dp(17)
+<CanvasWidget>
+
+    # Creating Canvas
+    canvas:
+
+        # Color is blue if button is pressed,
+        # otherwise color is red
+        Color:
+            rgb: (1, 0, 0, 1) if self.state == 'normal' else (0, 0, 1, 1)
+
+        # Rounded rectangle canvas
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+
+            # Play with these if you want smooth corners for your button
+            radius: 100, 100, 100, 100
+
+
+    # Print the text when touched or button pressed
+    on_release:
+        print("I have been clicked")
+
+<Test>:
+    size_hint: 1, 1
+    pos_hint: {'center_x': .5, 'center_y': .5}
+    do_default_tab: False
+    tab_height : 70
+    tab_width : 170
+
+    TabbedPanelItem:
+        text: 'Test Arm'
+        BoxLayout:
+            GridLayout:
+                rows:4
+                cols:1
+                Label:
+                    text: "Base Pos: "+ root.basePosStr
+
+                Label:
+                    text: "M1 Pos: "+ root.m1PosStr
+
+                Label:
+                    text: "N2 Pos: "+root.m2PosStr
+            GridLayout:
+                rows: 3
+                cols: 1
+                padding: 10
+                spacing: 10
+                GridLayout:
+                    rows: 2
+                    cols: 3
+                    Label:
+                        text:"Base"
+                    Label:
+                    Label:
+                    Button:
+                        text: '<'
+                        on_press: root.subtract(0)
+                        on_release: root.cancel(0)
+                    Label:
+                        id: label1
+                        text: root.m1
+                    Button:
+                        text: '>'
+                        on_press: root.add(0)
+                        on_release: root.cancel(0)
+                GridLayout:
+                    rows: 2
+                    cols: 3
+                    Label:
+                        text:"Motor 1"
+                    Label:
+                    Label:
+                    Button:
+                        text: '<'
+                        on_press: root.subtract(1)
+                        on_release: root.cancel(1)
+                    Label:
+                        id: label2
+                        text: root.m2
+                    Button:
+                        text: '>'
+                        on_press: root.add(1)
+                        on_release: root.cancel(1)
+                GridLayout:
+                    rows: 2
+                    cols: 3
+                    Label:
+                        text:"Motor 2"
+                    Label:
+                    Label:
+                    Button:
+                        text: '<'
+                        on_press: root.subtract(2)
+                        on_release: root.cancel(2)
+                    Label:
+                        id: label3
+                        text: root.m3
+                    Button:
+                        text: '>'
+                        on_press: root.add(2)
+                        on_release: root.cancel(2)
+
+
+    TabbedPanelItem:
+        text: 'Follow Color'
+        BoxLayout:
+            GridLayout:
+                rows:3
+                BoxLayout:
+                    size_hint: 1,.2
+                    Label:
+                        text: 'Current Color:'
+                    BoxLayout:
+                        size_hint: 0.27,1
+                        padding:8
+                        BoxLayout:
+                            canvas:
+
+                                # Color is blue if button is pressed,
+                                # otherwise color is red
+                                Color:
+                                    rgb: (root.finalRed, root.finalGreen, root.finalBlue)
+
+                                # Rounded rectangle canvas
+                                RoundedRectangle:
+                                    size: self.size[1],self.size[1]
+                                    pos: self.pos
+
+
+                                    # Play with these if you want smooth corners for your button
+                                    radius: 100, 100, 100, 100
+
+
+                    # Print the text when touched or button pressed
+                BoxLayout:
+                    padding: 12,0
+                    BoxLayout:
+                        canvas:
+                            Color:
+                                rgb: 1, 1, 1
+                            Ellipse:
+                                size: self.size[1]-50, self.size[1]-50
+                                pos: self.pos
+                                source: 'Modules/App/data/v2.png'
+                            Color:
+                                rgb: 0,0,0
+                            Ellipse:
+                                size: 30,30
+                                pos: root.colorX-10, root.colorY-10
+                BoxLayout:
+                    size_hint:1,0.15
+                    padding: 10
+                    BoxLayout:
+                        canvas:
+                            Color:
+                                rgb: (root.red, root.green, root.blue)
+
+                            RoundedRectangle:
+                                size: self.size[0],self.size[1]
+                                pos: self.pos
+                                radius: self.size[1]*.5,self.size[1]*.5,self.size[1]*.5,self.size[1]*.5
+                            Color:
+                                rgb: 1,1,1
+                            RoundedRectangle:
+                                size: self.size[0],self.size[1]
+                                pos: self.pos
+                                source: 'Modules/App/data/x.png'
+                                radius: self.size[1]*.5,self.size[1]*.5,self.size[1]*.5,self.size[1]*.5
+                            Ellipse:
+                                size:self.size[1],self.size[1]
+                                pos: root.posX-self.size[1]/2,self.pos[1]+1
+                            Color:
+                                rgb: 0,0,0
+                            Ellipse:
+                                size:self.size[1]*.75,self.size[1]*.75
+                                pos: root.posX-self.size[1]*.75/2,self.pos[1]+self.size[1]*.125
+
+
+            BoxLayout:
+                orientation:'vertical'
+                Image:
+                    texture:root.canvas_img_texture
+                Image:
+                    texture:root.canvas_mask_texture
+
+
+    TabbedPanelItem:
+        text: 'Follow Point'
+        BoxLayout:
+            BoxLayout:
+                orientation: 'vertical'
+                BoxLayout:
+                    Slider:
+                        orientation: "horizontal"
+                        min: -30
+                        max: 30
+                        value: 0
+                        on_value: root.modX(self.value)
+                    Label:
+                        size_hint:.5,1
+                        id: label2
+                        font_size: "15sp"
+                        text: root.tx
+                        color: 1,1,1
+                BoxLayout:
+                    Slider:
+                        orientation: "horizontal"
+                        min: -30
+                        max: 30
+                        value: 0
+                        on_value: root.modY(self.value)
+                    Label:
+                        size_hint:.5,1
+                        id: label2
+                        font_size: "15sp"
+                        text: root.ty
+                        color: 1,1,1
+                BoxLayout:
+                    Slider:
+                        orientation: "horizontal"
+                        min: 0
+                        max: 40
+                        value: 0
+                        on_value: root.modZ(self.value)
+                    Label:
+                        size_hint:.5,1
+                        id: label2
+                        font_size: "15sp"
+                        text: root.tz
+                        color: 1,1,1
+                Button:
+                    text:"GO!"
+                    on_press: root.coords()
+            BoxLayout:
+                padding: 20
+                BoxLayout:
+                    canvas:
+                        Line:
+                            points: [self.pos[0]+self.size[0],self.pos[1]+self.size[1]/2+(self.size[0]/2)*root.sint,self.pos[0],self.pos[1]+self.size[1]/2-(self.size[0]/2)*root.sint]
+                        Line:
+                            points: [self.pos[0]+self.size[0],self.pos[1]+self.size[1]/2-(self.size[0]/2)*root.sint,self.pos[0],self.pos[1]+self.size[1]/2+(self.size[0]/2)*root.sint]
+                        Line:
+                            points: [self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1],self.pos[0]+self.size[0]/2,self.pos[1]]
+                        Color:
+                            rgb: 1,0,0
+                        Line:
+                            width: 2
+                            points: [self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2,self.pos[0]+self.size[0]/2-root.x_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y]
+                        Color:
+                            rgb: 0,1,0
+                        Line:
+                            width: 2
+
+                            points: [self.pos[0]+self.size[0]/2-root.x_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y,self.pos[0]+self.size[0]/2-root.x_direction_x+root.y_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y-root.y_direction_y,self.pos[0]+self.size[0]/2-root.x_direction_x+root.y_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y-root.y_direction_y+root.z_direction_z]
+                        Color:
+                            rgb:0,0,1
+                        Line:
+                            width: 2
+                            points: [self.pos[0]+self.size[0]/2-root.x_direction_x+root.y_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y-root.y_direction_y,self.pos[0]+self.size[0]/2-root.x_direction_x+root.y_direction_x,self.pos[1]+self.size[1]/2-root.x_direction_y-root.y_direction_y+root.z_direction_z]
+                        Color:
+                            rgb:1,1,0
+                        Ellipse:
+                            size: 5,5
+                            pos: self.pos[0]+self.size[0]/2-root.x_direction_x+root.y_direction_x-2.5,self.pos[1]+self.size[1]/2-root.x_direction_y-root.y_direction_y+root.z_direction_z-2.5
+    TabbedPanelItem:
+        text: 'Info'
+        FloatLayout:
+            Label:
+                text: "UCSC Arm Team"
+                size_hint:1,1
+                pos:0,0
+            Button:
+                size_hint: .25,.25
+                pos: 0,0
+                text: "QUIT"
+                on_press: app.stop()

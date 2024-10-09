@@ -1,0 +1,20 @@
+# python 
+__pycache__
+*/__pycache__
+**/__pycache__
+__pycache__/
+
+# virtual enviroments
+.venv
+
+# configuration and secrets
+config.json
+
+# Intellij
+**.idea
+
+# Mac metadata
+**.DS_Store
+**/.DS_Store
+**.ds_store
+**/.ds_store
