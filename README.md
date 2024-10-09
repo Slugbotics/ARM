@@ -1,5 +1,7 @@
 # Getting Started
 
+To use this project, new members should create a fork.
+
 ## 0) Pre-req installation
 0.1) Install Python > 3.12 (*must be greater than 3.12*) \
 0.2) If you are running Linux, make a venv. See instructions at the bottom.
