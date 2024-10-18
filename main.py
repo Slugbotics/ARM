@@ -154,6 +154,7 @@ print('Selected object_identifier: ' + selected_object_identifier.__class__.__na
 print('        Selected controler: ' + selected_controler.__class__.__name__)
 print('           Selected server: ' + selected_server.__class__.__name__)
 print('              Selected app: ' + selected_app.__class__.__name__)
+print('   Selected speech to text: ' + selected_stt.__class__.__name__)
 
 keep_running = True
 
