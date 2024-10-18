@@ -1,3 +1,6 @@
+# armteam folders
+vosk_models/
+
 # python 
 __pycache__
 */__pycache__
