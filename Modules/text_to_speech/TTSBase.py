@@ -1,5 +1,3 @@
-import pyttsx3
-
 from Modules.Base.TextOut import TextOut
 
 class TTSBase(TextOut):
