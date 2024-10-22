@@ -132,7 +132,7 @@ class VoskTTS(STTBase):
         except Exception as e:
             print(f"Error during listening: {e}")
         finally:
-            self.deactivate()
+            self.active = False
 
     def on_speech_detected(self, text: str):
         """This method will handle speech detection output."""
