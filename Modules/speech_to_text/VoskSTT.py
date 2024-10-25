@@ -9,19 +9,18 @@ from Modules.speech_to_text.STTBase import STTBase
 
 from Modules.speech_to_text.VoskModelDownloader import download_and_extract_vosk_model
 
-class VoskTTS(STTBase):
+class VoskSTT(STTBase):
 
-    DEFAULT_MODEL = "vosk-model-small-en-us-0.15" # small model
-    # DEFAULT_MODEL = "vosk-model-en-us-0.22"       # big model
+    DEFAULT_MODEL_SMALL = "vosk-model-small-en-us-0.15" # small model
+    DEFAULT_MODEL_LARGE = "vosk-model-en-us-0.22"       # big model
 
     DEFAULT_MODEL_DIRECTORY = "." + os.path.sep + "vosk_models"
-    DEFAULT_MODEL_PATH = DEFAULT_MODEL_DIRECTORY + os.path.sep + DEFAULT_MODEL
-    DEFAULT_MODEL_DOWNLOAD_URL = "https://alphacephei.com/vosk/models/" + DEFAULT_MODEL + ".zip"
 
     print_heard_text = True
 
-    def __init__(self, model_path=None):
+    def __init__(self, selected_default_model = None, model_path=None):
         self.model_path = model_path
+        self.selected_default_model = selected_default_model
         self.model = None
         self.recognizer = None
         self.p = None
@@ -30,19 +29,30 @@ class VoskTTS(STTBase):
         self.listening_thread = None
         self.text_deque = deque()
         self.text_lock = threading.Lock()
+        
+        if self.selected_default_model is None:
+            self.selected_default_model = VoskSTT.DEFAULT_MODEL_SMALL
+        
+    def get_default_model_path(self) -> str:
+        return VoskSTT.DEFAULT_MODEL_DIRECTORY + os.path.sep + self.selected_default_model
 
+    def get_default_model_download_url(self) -> str:
+        return "https://alphacephei.com/vosk/models/" + self.selected_default_model + ".zip"
+    
+    def set_selected_default_model(self, selected_default_model: str) -> None:
+        self.selected_default_model = selected_default_model
 
     def start(self) -> bool:
         """Load the Vosk model and initialize audio input, but don't start listening yet."""
 
         if self.model_path is None:
-            print("VoskTTS.vosk model does not exist, downloading basic model from: " + VoskTTS.DEFAULT_MODEL_DOWNLOAD_URL)
+            print("VoskTTS.vosk model does not exist, downloading basic model from: " + self.get_default_model_download_url())
             print("If you want to select a different model, choose one from:")
             print("https://github.com/alphacep/vosk-space/blob/master/models.md")
             print("and pass the path to that model download location to the constructor of this VoaskTTS")
-            self.model_path = VoskTTS.DEFAULT_MODEL_PATH
+            self.model_path = self.get_default_model_path()
             if not os.path.exists(self.model_path):
-                self.model_path = download_and_extract_vosk_model(VoskTTS.DEFAULT_MODEL_DOWNLOAD_URL, VoskTTS.DEFAULT_MODEL_DIRECTORY)
+                self.model_path = download_and_extract_vosk_model(self.get_default_model_download_url(), VoskSTT.DEFAULT_MODEL_DIRECTORY)
 
         try:
             self.model = vosk.Model(self.model_path)
@@ -137,7 +147,7 @@ class VoskTTS(STTBase):
     def on_speech_detected(self, text: str):
         """This method will handle speech detection output."""
         if text:
-            if VoskTTS.print_heard_text:
+            if VoskSTT.print_heard_text:
                 print(f"Detected speech: {text}")
             with self.text_lock:
                 self.text_deque.appendleft(text)
@@ -161,7 +171,7 @@ class VoskTTS(STTBase):
 
 if __name__ == "__main__":
     # Example Usage
-    tts = VoskTTS(model_path="path_to_vosk_model")
+    tts = VoskSTT(model_path="path_to_vosk_model")
     tts.start()  # Load the model
 
     # Activate the speech recognition in a non-blocking way

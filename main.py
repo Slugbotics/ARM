@@ -29,6 +29,7 @@ config = {
     "use_server" : True,
     "use_twitch" : False,
     "use_stt" : True,
+    "stt_model_large" : False,
     "open_startup_page" : False,
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
@@ -145,8 +146,10 @@ if config["use_twitch"]:
 
 # speech to text setup
 if config["use_stt"]:
-    from Modules.speech_to_text.VoskTTS import VoskTTS
-    selected_stt: STTBase = VoskTTS()
+    from Modules.speech_to_text.VoskSTT import VoskSTT
+    selected_stt: STTBase = VoskSTT()
+    if config["stt_model_large"]:
+        selected_stt.set_selected_default_model(VoskSTT.DEFAULT_MODEL_LARGE)
     selected_stt.start()
 
 print('              Selected HAL: ' + selected_HAL.__class__.__name__)
