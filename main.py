@@ -5,6 +5,9 @@ import cv2
 import json
 import ctypes  # For alerts
 
+from Modules.Commands.Commands import Commands
+from Modules.Commands.DefaultCommands import register_default_commands
+
 from HALs.HAL_base import HAL_base
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Controllers.Controller import Controller
@@ -37,6 +40,7 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
+commands: Commands = Commands()
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -92,6 +96,8 @@ if args.twitch_chat is not None:
     selected_twitch_channel = args.twitch_chat
 if args.use_app:
     config["use_app"] = True
+
+register_default_commands(commands)
 
 # HAL stuff
 selected_HAL : HAL_base = None
@@ -169,11 +175,13 @@ if __name__ == "__main__":
     
     # ----------------- MAIN PROGRAM LOOP -----------------
     if config["use_server"]:
+        commands.run_commands_looping_async()
         print("Server Startup")
         selected_server.start_server()
 
     if config["use_app"]:
         try:
+            commands.run_commands_looping_async()
             selected_app.start_app()
         except KeyboardInterrupt:
                 keep_running = False
@@ -182,9 +190,7 @@ if __name__ == "__main__":
         while keep_running:
             print("Arm is running, press 'q' or ctrl-c to quit")
             try:
-                user_value = input("Enter a command: ")
-                if user_value == 'q':
-                    keep_running = False
+                commands.run_commands_looping()
             except KeyboardInterrupt:
                 keep_running = False
             
@@ -202,6 +208,8 @@ if __name__ == "__main__":
     if selected_controler is not None:
         selected_controler.stop()
     selected_HAL.stop_arm()
+    
+    commands.cleanup()
     
     print("Arm shutdown complete")
     
