@@ -28,6 +28,7 @@ config = {
     "use_server" : True,
     "use_twitch" : False,
     "open_startup_page" : False,
+    "write_logs" : True,
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
     "twitch_channel_name" : "ucscarm"
@@ -37,6 +38,7 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
+selected_logger = None
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -56,7 +58,7 @@ parser.add_argument("-p", "--physical", help = "Use the Physical hardware interf
 parser.add_argument("--use_app", help = "Use the app as the controler.")
 parser.add_argument("--disable_server", action='store_true', help = "Disable the locally hosted server.")
 parser.add_argument('--twitch_chat', nargs='?', const="ucscarm", type=twitch_channel_name_type, help='If passed in, will connect to provided twitch channel (default is ucscarm).')
-
+parser.add_argument("--write_logs", help = "Will write console messages to a file.")
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
@@ -92,6 +94,13 @@ if args.twitch_chat is not None:
     selected_twitch_channel = args.twitch_chat
 if args.use_app:
     config["use_app"] = True
+if args.write_logs:
+    config["write_logs"] = True
+    
+if config["write_logs"]:
+    from Modules.Logging.PrintLogger import PrintLogger
+    selected_logger = PrintLogger()
+    selected_logger.start()
 
 # HAL stuff
 selected_HAL : HAL_base = None
@@ -143,6 +152,7 @@ print('Selected object_identifier: ' + selected_object_identifier.__class__.__na
 print('        Selected controler: ' + selected_controler.__class__.__name__)
 print('           Selected server: ' + selected_server.__class__.__name__)
 print('              Selected app: ' + selected_app.__class__.__name__)
+print('           Selected logger: ' + selected_logger.__class__.__name__)
 
 keep_running = True
 
@@ -202,6 +212,9 @@ if __name__ == "__main__":
     if selected_controler is not None:
         selected_controler.stop()
     selected_HAL.stop_arm()
+    
+    if selected_logger is not None:
+        selected_logger.stop()
     
     print("Arm shutdown complete")
     
