@@ -41,11 +41,8 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
-<<<<<<< HEAD
 selected_stt: STTBase = None
-=======
 selected_tts = None
->>>>>>> origin/main
 
 # ARG parsing
 parser = argparse.ArgumentParser()
