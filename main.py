@@ -9,6 +9,7 @@ from HALs.HAL_base import HAL_base
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Controllers.Controller import Controller
 from Modules.server.ServerBase import ServerBase
+from Modules.speech_to_text.STTBase import STTBase
 
 from Vision.ColorObjectIdentifier import ColorObjectIdentifier
 from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
@@ -27,6 +28,8 @@ config = {
     "use_app" : False,
     "use_server" : True,
     "use_twitch" : False,
+    "use_stt" : True,
+    "stt_model_large" : False,
     "open_startup_page" : False,
     "use_tts" : True,
     "twitch_id" : "NONE",
@@ -38,6 +41,7 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
+selected_stt: STTBase = None
 selected_tts = None
 
 # ARG parsing
@@ -58,7 +62,7 @@ parser.add_argument("-p", "--physical", help = "Use the Physical hardware interf
 parser.add_argument("--use_app", help = "Use the app as the controler.")
 parser.add_argument("--disable_server", action='store_true', help = "Disable the locally hosted server.")
 parser.add_argument('--twitch_chat', nargs='?', const="ucscarm", type=twitch_channel_name_type, help='If passed in, will connect to provided twitch channel (default is ucscarm).')
-
+parser.add_argument("--use_speech_to_text", help = "Enable the speech to text system.")
 
 def Mbox(title, text, style):
     return ctypes.windll.user32.MessageBoxW(0, text, title, style)
@@ -94,6 +98,8 @@ if args.twitch_chat is not None:
     selected_twitch_channel = args.twitch_chat
 if args.use_app:
     config["use_app"] = True
+if args.use_speech_to_text:
+    config["use_stt"] = True
 
 if config["use_tts"]:
     from Modules.text_to_speech.TTSBase import TTSBase
@@ -145,11 +151,20 @@ if config["use_twitch"]:
     else:
         selected_twitch = TwitchChat(config["twitch_id"], config["twitch_secret"])
 
+# speech to text setup
+if config["use_stt"]:
+    from Modules.speech_to_text.VoskSTT import VoskSTT
+    selected_stt: STTBase = VoskSTT()
+    if config["stt_model_large"]:
+        selected_stt.set_selected_default_model(VoskSTT.DEFAULT_MODEL_LARGE)
+    selected_stt.start()
+
 print('              Selected HAL: ' + selected_HAL.__class__.__name__)
 print('Selected object_identifier: ' + selected_object_identifier.__class__.__name__)
 print('        Selected controler: ' + selected_controler.__class__.__name__)
 print('           Selected server: ' + selected_server.__class__.__name__)
 print('              Selected app: ' + selected_app.__class__.__name__)
+print('   Selected speech to text: ' + selected_stt.__class__.__name__)
 print('              Selected tts: ' + selected_tts.__class__.__name__)
 
 keep_running = True
@@ -172,6 +187,10 @@ if __name__ == "__main__":
             selected_twitch.connect_to_twitch(selected_twitch_channel)
         else:
             selected_twitch.connect_to_twitch(config["twitch_channel_name"])
+
+    # start listening to speech
+    if selected_stt is not None:
+        selected_stt.activate()
     
     if selected_tts is not None:
         selected_tts.say("Arm startup.")
@@ -208,6 +227,9 @@ if __name__ == "__main__":
     keep_running = False
     if config["use_twitch"]:
         selected_twitch.stop_twitch_chat()
+    # stop listening to speech
+    if selected_stt is not None:
+        selected_stt.stop()
     if selected_server is not None:
         selected_server.stop_server()
     if selected_controler is not None:
