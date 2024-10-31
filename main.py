@@ -34,6 +34,7 @@ config = {
     "use_stt" : True,
     "stt_model_large" : False,
     "open_startup_page" : False,
+    "write_logs" : True,
     "use_tts" : True,
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
@@ -44,6 +45,7 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
+selected_logger = None
 commands: Commands = Commands()
 selected_stt: STTBase = None
 selected_tts = None
@@ -66,6 +68,7 @@ parser.add_argument("-p", "--physical", help = "Use the Physical hardware interf
 parser.add_argument("--use_app", help = "Use the app as the controler.")
 parser.add_argument("--disable_server", action='store_true', help = "Disable the locally hosted server.")
 parser.add_argument('--twitch_chat', nargs='?', const="ucscarm", type=twitch_channel_name_type, help='If passed in, will connect to provided twitch channel (default is ucscarm).')
+parser.add_argument("--write_logs", help = "Will write console messages to a file.")
 parser.add_argument("--use_speech_to_text", help = "Enable the speech to text system.")
 
 def Mbox(title, text, style):
@@ -102,6 +105,13 @@ if args.twitch_chat is not None:
     selected_twitch_channel = args.twitch_chat
 if args.use_app:
     config["use_app"] = True
+if args.write_logs:
+    config["write_logs"] = True
+    
+if config["write_logs"]:
+    from Modules.Logging.PrintLogger import PrintLogger
+    selected_logger = PrintLogger()
+    selected_logger.start()
 if args.use_speech_to_text:
     config["use_stt"] = True
 
@@ -170,6 +180,7 @@ print('Selected object_identifier: ' + selected_object_identifier.__class__.__na
 print('        Selected controler: ' + selected_controler.__class__.__name__)
 print('           Selected server: ' + selected_server.__class__.__name__)
 print('              Selected app: ' + selected_app.__class__.__name__)
+print('           Selected logger: ' + selected_logger.__class__.__name__)
 print('   Selected speech to text: ' + selected_stt.__class__.__name__)
 print('              Selected tts: ' + selected_tts.__class__.__name__)
 
@@ -243,6 +254,9 @@ if __name__ == "__main__":
     selected_HAL.stop_arm()
     
     commands.cleanup()
+    
+    if selected_logger is not None:
+        selected_logger.stop()
     
     print("Arm shutdown complete")
     
