@@ -31,6 +31,7 @@ config = {
     "use_stt" : True,
     "stt_model_large" : False,
     "open_startup_page" : False,
+    "use_tts" : True,
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
     "twitch_channel_name" : "ucscarm"
@@ -40,7 +41,11 @@ selected_HAL : HAL_base = None
 selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
+<<<<<<< HEAD
 selected_stt: STTBase = None
+=======
+selected_tts = None
+>>>>>>> origin/main
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -98,6 +103,11 @@ if args.use_app:
     config["use_app"] = True
 if args.use_speech_to_text:
     config["use_stt"] = True
+
+if config["use_tts"]:
+    from Modules.text_to_speech.TTSBase import TTSBase
+    from Modules.text_to_speech.pyttsx_tts import pyttsx_tts
+    selected_tts: TTSBase = pyttsx_tts()
 
 # HAL stuff
 selected_HAL : HAL_base = None
@@ -158,6 +168,7 @@ print('        Selected controler: ' + selected_controler.__class__.__name__)
 print('           Selected server: ' + selected_server.__class__.__name__)
 print('              Selected app: ' + selected_app.__class__.__name__)
 print('   Selected speech to text: ' + selected_stt.__class__.__name__)
+print('              Selected tts: ' + selected_tts.__class__.__name__)
 
 keep_running = True
 
@@ -183,6 +194,9 @@ if __name__ == "__main__":
     # start listening to speech
     if selected_stt is not None:
         selected_stt.activate()
+    
+    if selected_tts is not None:
+        selected_tts.say("Arm startup.")
         
     # ----------------- END SETUP -----------------
     
@@ -226,6 +240,9 @@ if __name__ == "__main__":
     selected_HAL.stop_arm()
     
     print("Arm shutdown complete")
+    
+    if selected_tts is not None:
+        selected_tts.say("Arm shutdown.")
     
     # Reopen Startup page
     if config["open_startup_page"]:
