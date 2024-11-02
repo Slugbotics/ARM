@@ -28,6 +28,7 @@ config = {
     "config_version" : 1,
     "use_simulator" : True,
     "use_physical" : False,
+    "sim_host": "localhost",
     "use_app" : False,
     "use_server" : True,
     "use_twitch" : False,
@@ -127,7 +128,7 @@ selected_HAL : HAL_base = None
 
 if config["use_simulator"]:
     from HALs.sim_HAL import sim_HAL
-    selected_HAL = sim_HAL()
+    selected_HAL = sim_HAL(config["sim_host"])
 elif config["use_physical"]:
     from HALs.physical_HAL import physical_HAL
     selected_HAL = physical_HAL()

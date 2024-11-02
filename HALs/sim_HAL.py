@@ -24,21 +24,24 @@ class sim_HAL(HAL_base):
 
     motorCount = 4
     
+    host: str = None
+
     client = None
     sim = None
     mtr = None
     sensorHandle = None
     
-    def __init__(self):
+    def __init__(self, host: str):
         super().__init__()
         self.lock = threading.Lock()
+        self.host = host
 
     def start_arm(self):
 
         if self.sim is None:
             with self.lock:
                 # remote API init
-                self.client = RemoteAPIClient()
+                self.client = RemoteAPIClient(host=self.host)
                 self.sim = self.client.require('sim')
                 
                 # motor ids
