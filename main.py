@@ -25,7 +25,7 @@ import sys
 # these are the default values, they are saved in a file called config.json that is ignored by git.
 # if you add or rename parameters, please increment config_version for everything to work properly. 
 config = {
-    "config_version" : 1,
+    "config_version" : 2,
     "use_simulator" : True,
     "use_physical" : False,
     "sim_host": "localhost",
