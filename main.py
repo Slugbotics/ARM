@@ -18,6 +18,9 @@ from Vision.ColorObjectIdentifier import ColorObjectIdentifier
 from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
 from Controllers.FollowClaw import FollowClawController
 
+from Modules.Language.LanguageInterpreter import LanguageInterpreter
+from Modules.Language.LanguageTools import register_default_tools
+
 import subprocess
 import sys
 
@@ -50,6 +53,7 @@ selected_logger = None
 commands: Commands = Commands()
 selected_stt: STTBase = None
 selected_tts = None
+language_interpreter = LanguageInterpreter("llama3.2:3b")
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -122,6 +126,9 @@ if config["use_tts"]:
     selected_tts: TTSBase = pyttsx_tts()
 
 register_default_commands(commands)
+commands.add_command("llm", lambda args: print(language_interpreter.run(args)))
+
+register_default_tools(language_interpreter)
 
 # HAL stuff
 selected_HAL : HAL_base = None
