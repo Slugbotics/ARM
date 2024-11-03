@@ -26,3 +26,6 @@ Logs/
 **/.DS_Store
 **.ds_store
 **/.ds_store
+
+# Language model files
+*.Modelfile

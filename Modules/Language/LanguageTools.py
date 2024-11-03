@@ -1,15 +1,15 @@
 from Modules.Language.LanguageInterpreter import LanguageInterpreter
 import requests
 
-def set_tracking_color(r: int, g: int, b: int):
-    "Sets the color that the arm will track to the specified red (r), green (g), and blue (b) color. This function does not return anything."
-    pass
+def get_visible_objects() -> list[str]:
+    "Returns a list of IDs of objects that are visible to the arm"
+    return ["blue_object", "red_object", "green_object"]
 
-def http_get(url: str):
-    "Makes an HTTP GET request to the specified URL, returning the full body of the response as a string."
+def http_get(url: str) -> str:
+    "Makes an HTTP GET request to the specified URL, returning the full body of the response as a string"
     res = requests.get(url=url)
     return res.text
 
 def register_default_tools(interpreter: LanguageInterpreter):
-    interpreter.add_tool(set_tracking_color)
+    interpreter.add_tool(get_visible_objects)
     interpreter.add_tool(http_get)
