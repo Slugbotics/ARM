@@ -4,6 +4,27 @@ from inspect import signature, Parameter
 from typing import Callable
 import os.path
 
+def tool(description: str, **parameter_descriptions):
+    def tool_decorator(func: Callable):
+        func.tool_name = func.__name__
+        func.tool_description = description
+        func.tool_param_descriptions = parameter_descriptions
+        func.tool_param_types = {}
+        func.tool_required_params = []
+        func_sig = signature(func)
+        for param_name in func_sig.parameters.keys():
+            if param_name not in parameter_descriptions:
+                raise Exception(f"Missing parameter description for '{param_name}' on '{func.__name__}'")
+            param = func_sig.parameters[param_name]
+            if param.annotation == Parameter.empty:
+                func.tool_param_types[param_name] = "any"
+            else:
+                func.tool_param_types[param_name] = param.annotation.__name__
+            if param.default == Parameter.empty:
+                func.tool_required_params.append(param_name)
+        return func
+    return tool_decorator
+
 DEFAULT_MODEL_FILE = """FROM llama3.2:3b
 PARAMETER temperature 0
 SYSTEM \"""You have the ability to control a robotic arm using tool calling.
@@ -37,31 +58,23 @@ class LanguageInterpreter:
         print()
 
     def add_tool(self, fn: Callable):
-        fn_sig = signature(fn)
+        if fn.tool_name is None:
+            raise Exception("The provided function does not have a tool decorator")
         params: dict[str, ollama._types.Property] = {}
-        required_params: list[str] = []
-        for param_name in fn_sig.parameters.keys():
-            fn_sig.parameters[param_name].default
-            annotation = fn_sig.parameters[param_name].annotation.__name__
-            description = f"The {param_name} parameter"
-            param_type = "any"
-            if annotation != Parameter.empty:
-                param_type = annotation
-            if fn_sig.parameters[param_name].default == Parameter.empty:
-                required_params.append(param_name)
+        for param_name in fn.tool_param_types.keys():
             params[param_name] = {
-                "type": param_type,
-                "description": description
+                "type": fn.tool_param_types[param_name],
+                "description": fn.tool_param_descriptions[param_name]
             }
         tool: ollama._types.Tool = { 
             "type": "function",
             "function": {
-                "name": fn.__name__,
-                "description": fn.__doc__,
+                "name": fn.tool_name,
+                "description": fn.tool_description,
                 "parameters": {
                     "type": "object",
                     "properties": params,
-                    "required": required_params
+                    "required": fn.tool_required_params
                 }
             }
         }
