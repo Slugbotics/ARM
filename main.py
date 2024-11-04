@@ -3,7 +3,6 @@ import argparse
 import numpy as np
 import cv2
 import json
-import ctypes  # For alerts
 
 from Modules.Commands.Commands import Commands
 from Modules.Commands.DefaultCommands import register_default_commands
@@ -25,7 +24,6 @@ import sys
 # these are the default values, they are saved in a file called config.json that is ignored by git.
 # if you add or rename parameters, please increment config_version for everything to work properly. 
 config = {
-    "config_version" : 2,
     "use_simulator" : True,
     "use_physical" : False,
     "sim_host": "localhost",
@@ -72,26 +70,29 @@ parser.add_argument('--twitch_chat', nargs='?', const="ucscarm", type=twitch_cha
 parser.add_argument("--write_logs", help = "Will write console messages to a file.")
 parser.add_argument("--use_speech_to_text", help = "Enable the speech to text system.")
 
-def Mbox(title, text, style):
-    return ctypes.windll.user32.MessageBoxW(0, text, title, style)
-def SaveConfig():
-    json_object = json.dumps(config, indent=4) 
-    with open("config.json", "w") as outfile:
-        outfile.write(json_object)
+def load_config() -> None:
+    global config
+    json_object = {}
+    config_updated = False
+    try:
+        with open('config.json', 'r') as openfile:
+            json_object = json.load(openfile)
+    except:
+        config_updated = True
 
-try:
-    with open('config.json', 'r') as openfile:
-        json_object = json.load(openfile)
-        if json_object["config_version"] < config["config_version"]:
-            print("Invalid Config, creating new file")
-            Mbox('Invalid Arm Config', 'The config file used was old, so a new one was created. Be sure to update any parameters then relaunch.', 1)
-            SaveConfig()
-            sys.exit()
-        config = json_object
-except:
-    print("No config.json found, it has been created.")
-    SaveConfig()
+    for key in config.keys():
+        if key not in json_object:
+            json_object[key] = config[key]
+            config_updated = True
+    config = json_object
 
+    if config_updated:
+        print("Config updated. Saving config file with new properties...")
+        json_str = json.dumps(config, indent=4)
+        with open("config.json", "w") as outfile:
+            outfile.write(json_str)
+
+load_config()
 
 # Read arguments from command line
 args = parser.parse_args()
