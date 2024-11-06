@@ -3,6 +3,7 @@ import pyaudio
 import json
 import threading
 import os
+from typing import Callable
 from collections import deque
 
 from Modules.speech_to_text.STTBase import STTBase
@@ -18,9 +19,10 @@ class VoskSTT(STTBase):
 
     print_heard_text = True
 
-    def __init__(self, selected_default_model = None, model_path=None):
+    def __init__(self, on_sentence_heard_fnc: Callable[[str], None] = None, selected_default_model = None, model_path=None):
         self.model_path = model_path
         self.selected_default_model = selected_default_model
+        self.on_sentence_heard_fnc = on_sentence_heard_fnc
         self.model = None
         self.recognizer = None
         self.p = None
@@ -151,6 +153,8 @@ class VoskSTT(STTBase):
                 print(f"Detected speech: {text}")
             with self.text_lock:
                 self.text_deque.appendleft(text)
+            if self.on_sentence_heard_fnc:
+                self.on_sentence_heard_fnc(text)
     
     def get_last_sentence(self) -> str:
         with self.text_lock:

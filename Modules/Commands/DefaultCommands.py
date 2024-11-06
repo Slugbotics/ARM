@@ -1,10 +1,12 @@
-def register_default_commands(commands_instance):
-    def help_command(_):
+import Modules.Commands.Commands as Commands
+
+def register_default_commands(commands_instance: Commands) -> None:
+    def help_command(args: str) -> None:
         print("Available commands:")
         for cmd_name, cmd_info in commands_instance.commands.items():
             print(f"{cmd_name}: {cmd_info['help']}")
 
-    def run_file_command(args):
+    def run_file_command(args: str) -> None:
         try:
             with open(args.strip(), 'r') as file:
                 for line in file:
