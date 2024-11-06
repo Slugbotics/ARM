@@ -17,6 +17,9 @@ from Vision.ColorObjectIdentifier import ColorObjectIdentifier
 from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
 from Controllers.FollowClaw import FollowClawController
 
+from Modules.Language.LanguageInterpreter import LanguageInterpreter
+from Modules.Language.LanguageTools import register_default_tools
+
 import subprocess
 import sys
 
@@ -37,7 +40,9 @@ config = {
     "use_tts" : True,
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
-    "twitch_channel_name" : "ucscarm"
+    "twitch_channel_name" : "ucscarm",
+    "use_language_model": False,
+    "language_model_file": "Arm.Modelfile"
 }
 
 selected_HAL : HAL_base = None
@@ -48,6 +53,7 @@ selected_logger = None
 commands: Commands = Commands()
 selected_stt: STTBase = None
 selected_tts = None
+language_interpreter: LanguageInterpreter = None
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -122,7 +128,15 @@ if config["use_tts"]:
     from Modules.text_to_speech.pyttsx_tts import pyttsx_tts
     selected_tts: TTSBase = pyttsx_tts()
 
+
 register_default_commands(commands)
+
+# Language stuff
+if config["use_language_model"]:
+    language_interpreter = LanguageInterpreter(config["language_model_file"])
+    register_default_tools(language_interpreter)
+    commands.add_command("llm", lambda args: print(language_interpreter.run(args)),
+                        "Runs the provided input on the language model")
 
 # HAL stuff
 selected_HAL : HAL_base = None
