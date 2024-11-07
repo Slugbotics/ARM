@@ -1,6 +1,7 @@
 from collections import deque
 import threading
 from functools import partial
+from typing import Callable
 import cv2
 
 import sys
@@ -16,7 +17,7 @@ from Modules.Base.TextIn import TextIn
 
 class TwitchChat(TextIn):  
     
-    def __init__(self, twitch_client_id, twitch_secret):
+    def __init__(self, twitch_client_id: str, twitch_secret: str) -> None:
         self.keep_running = False
         self.irc_client = None
         self.http_server = None
@@ -48,7 +49,7 @@ class TwitchChat(TextIn):
         else:
             print("Not shutting down http server, no reference <---------------------")
 
-    def connect_to_twitch(self, channel_name, process_msg_fnc = None):
+    def connect_to_twitch(self, channel_name: str, process_msg_fnc: Callable[[str], None] = None) -> None:
         self.process_msg_fnc = process_msg_fnc
         self.channel_name = channel_name
         self.keep_running = True
@@ -56,7 +57,7 @@ class TwitchChat(TextIn):
         self.thread.daemon = True  # Mark the thread as a daemon
         self.thread.start()
 
-    def run_irc(self, _):
+    def run_irc(self, _) -> None:
         print("Requesting token...")
         res = requests.post("https://id.twitch.tv/oauth2/token",
                 data={
@@ -99,14 +100,14 @@ class TwitchChat(TextIn):
 
     class RequestHandler(http.server.BaseHTTPRequestHandler):
         
-        def __init__(self, *args, source_self, run_irc, set_code, twitch_client_id, **kwargs):
+        def __init__(self, *args, source_self, run_irc, set_code, twitch_client_id, **kwargs) -> None:
             self.source_self = source_self
             self.run_irc = run_irc
             self.set_code = set_code
             self.twitch_client_id = twitch_client_id
             super().__init__(*args, **kwargs)            
             
-        def do_GET(self):
+        def do_GET(self) -> None:
             qs = urlparse(self.path).query
             code_param = parse_qs(qs).get("code")
             if code_param is not None and len(code_param) == 1:
@@ -121,10 +122,10 @@ class TwitchChat(TextIn):
         def log_message(self, format: str, *args) -> None:
             pass
 
-    def set_code(_, self, code):
+    def set_code(_, self, code: str) -> None:
         self.code = code
 
-    def host_login_prompt(self):
+    def host_login_prompt(self) -> None:
 
         self.code = None           
 

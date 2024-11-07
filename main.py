@@ -6,7 +6,10 @@ import json
 
 from Modules.Commands.Commands import Commands
 from Modules.Commands.DefaultCommands import register_default_commands
+from Modules.ConsoleInput import ConsoleInput
+from Modules.Console import Console
 
+from Modules.Base.TextOut import TextOut
 from HALs.HAL_base import HAL_base
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Controllers.Controller import Controller
@@ -41,7 +44,7 @@ config = {
     "twitch_id" : "NONE",
     "twitch_secret" : "NONE",
     "twitch_channel_name" : "ucscarm",
-    "use_language_model": False,
+    "use_language_model": True,
     "language_model_file": "Arm.Modelfile"
 }
 
@@ -50,9 +53,11 @@ selected_object_identifier : VisualObjectIdentifier = None
 selected_controler : Controller = None
 selected_server : ServerBase = None
 selected_logger = None
-commands: Commands = Commands()
 selected_stt: STTBase = None
 selected_tts = None
+selected_voice: TextOut = Console()
+commands: Commands = Commands()
+console_input: ConsoleInput = ConsoleInput()
 language_interpreter: LanguageInterpreter = None
 
 # ARG parsing
@@ -127,15 +132,29 @@ if config["use_tts"]:
     from Modules.text_to_speech.TTSBase import TTSBase
     from Modules.text_to_speech.pyttsx_tts import pyttsx_tts
     selected_tts: TTSBase = pyttsx_tts()
+    selected_voice = selected_tts
 
 
+# console input stuff
+def user_input(input_str: str, trust: Commands.Trust, source: object) -> None:
+    is_command: bool = commands.run_command(input_str, trust, source)
+    if not is_command:
+        commands.run_command("/llm " + input_str, trust, source)
+def console_input_handeler(input_str: str) -> None:
+    user_input(input_str, Commands.Trust.TRUSTED, console_input)
+def speech_input_handeler(input_str: str) -> None:
+    user_input(input_str, Commands.Trust.TRUSTED, selected_stt)
+def twitch_input_handeler(input_str: str) -> None:
+    user_input(input_str, Commands.Trust.SUS, selected_twitch)
+    
+console_input = ConsoleInput(console_input_handeler, ">> ")
 register_default_commands(commands)
 
 # Language stuff
 if config["use_language_model"]:
     language_interpreter = LanguageInterpreter(config["language_model_file"])
     register_default_tools(language_interpreter)
-    commands.add_command("llm", lambda args: print(language_interpreter.run(args)),
+    commands.add_command("llm", lambda args: selected_voice.write_line(language_interpreter.run(args)),
                         "Runs the provided input on the language model")
 
 # HAL stuff
@@ -175,7 +194,6 @@ if config["use_server"]:
 # Twitch setup
 if config["use_twitch"]:
     from Modules.twitch.TwitchChat import TwitchChat
-    selected_twitch = TwitchChat()
     if config["twitch_id"] == "NONE":
         print("Please set twitch_id to a valid twitch_id to use the twitch chat reader")
     elif config["twitch_secret"] == "NONE":
@@ -186,7 +204,7 @@ if config["use_twitch"]:
 # speech to text setup
 if config["use_stt"]:
     from Modules.speech_to_text.VoskSTT import VoskSTT
-    selected_stt: STTBase = VoskSTT()
+    selected_stt: STTBase = VoskSTT(on_sentence_heard_fnc = speech_input_handeler)
     if config["stt_model_large"]:
         selected_stt.set_selected_default_model(VoskSTT.DEFAULT_MODEL_LARGE)
     selected_stt.start()
@@ -199,6 +217,7 @@ print('              Selected app: ' + selected_app.__class__.__name__)
 print('           Selected logger: ' + selected_logger.__class__.__name__)
 print('   Selected speech to text: ' + selected_stt.__class__.__name__)
 print('              Selected tts: ' + selected_tts.__class__.__name__)
+print('            Selected voice: ' + selected_voice.__class__.__name__)
 
 keep_running = True
 
@@ -217,9 +236,9 @@ if __name__ == "__main__":
     # Connect to twitch
     if config["use_twitch"]:
         if 'selected_twitch_channel' in locals():
-            selected_twitch.connect_to_twitch(selected_twitch_channel)
+            selected_twitch.connect_to_twitch(selected_twitch_channel, twitch_input_handeler)
         else:
-            selected_twitch.connect_to_twitch(config["twitch_channel_name"])
+            selected_twitch.connect_to_twitch(config["twitch_channel_name"], twitch_input_handeler)
 
     # start listening to speech
     if selected_stt is not None:
@@ -232,13 +251,13 @@ if __name__ == "__main__":
     
     # ----------------- MAIN PROGRAM LOOP -----------------
     if config["use_server"]:
-        commands.run_commands_looping_async()
+        console_input.run_input_looping_async()
         print("Server Startup")
         selected_server.start_server()
 
     if config["use_app"]:
         try:
-            commands.run_commands_looping_async()
+            console_input.run_input_looping_async()
             selected_app.start_app()
         except KeyboardInterrupt:
                 keep_running = False
@@ -247,7 +266,7 @@ if __name__ == "__main__":
         while keep_running:
             print("Arm is running, press 'q' or ctrl-c to quit")
             try:
-                commands.run_commands_looping()
+                console_input.run_input_looping()
             except KeyboardInterrupt:
                 keep_running = False
             
@@ -269,7 +288,7 @@ if __name__ == "__main__":
         selected_controler.stop()
     selected_HAL.stop_arm()
     
-    commands.cleanup()
+    console_input.cleanup()
     
     if selected_logger is not None:
         selected_logger.stop()
