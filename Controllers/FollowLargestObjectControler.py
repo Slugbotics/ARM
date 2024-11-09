@@ -209,10 +209,13 @@ class FollowLargestObjectControler(Controller):
         self.object_found = (target_object is not None)
         if(self.object_found):
             await self.move_towards_object(target_object, frame)
-        
-            cv2.imshow('Frame', cv2.flip(target_object.source_frame_hsv, 0))
+
+            flipped_source_frame_hsv = cv2.flip(target_object.source_frame_hsv, 0)
+            rgb_image = cv2.cvtColor(flipped_source_frame_hsv, cv2.COLOR_HSV2BGR)
+            cv2.imshow('Frame', rgb_image)
             if target_object.mask is not None:
-                cv2.imshow('Mask', cv2.flip(target_object.mask, 0))
+                flipped_mask = cv2.flip(target_object.mask, 0)
+                cv2.imshow('Mask', flipped_mask)
                 # cv2.imshow('Mask', mask)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
