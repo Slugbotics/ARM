@@ -5,7 +5,7 @@ import cv2
 import json
 
 from Modules.Commands.Commands import Commands
-from Modules.Commands.DefaultCommands import register_default_commands
+from Modules.Commands.DefaultCommands import register_default_commands, register_controler_commands
 from Modules.ConsoleInput import ConsoleInput
 from Modules.Console import Console
 
@@ -21,7 +21,7 @@ from Controllers.FollowLargestObjectControler import FollowLargestObjectControle
 from Controllers.FollowClaw import FollowClawController
 
 from Modules.Language.LanguageInterpreter import LanguageInterpreter
-from Modules.Language.LanguageTools import register_default_tools
+from Modules.Language.LanguageTools import register_default_tools, register_controler_tools
 
 import subprocess
 import sys
@@ -149,11 +149,13 @@ def twitch_input_handeler(input_str: str) -> None:
     
 console_input = ConsoleInput(console_input_handeler, ">> ")
 register_default_commands(commands)
+register_controler_commands(commands, lambda: selected_controler)
 
 # Language stuff
 if config["use_language_model"]:
     language_interpreter = LanguageInterpreter(config["language_model_file"])
     register_default_tools(language_interpreter)
+    register_controler_tools(language_interpreter, lambda: selected_controler)
     commands.add_command("llm", lambda args: selected_voice.write_line(language_interpreter.run(args)),
                         "Runs the provided input on the language model")
 
@@ -173,10 +175,10 @@ lower_blue = np.array([100, 150, 50])
 upper_blue = np.array([140, 255, 255])
 lower_red = np.array([0, 150, 50])
 upper_red = np.array([40, 255, 255])
-selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier(lower_blue, upper_blue)
+selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier()
 
 # controler stuff
-selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier)
+selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier, "Blue object")
 
 selected_app = None
 if config["use_app"]:

@@ -1,4 +1,5 @@
 import threading
+from threading import Lock
 import math
 from typing import List
 import cv2
@@ -181,7 +182,7 @@ class Three_Degree_Arm:
             print('This point is not feasible')
 
 class FollowClawController(Controller):
-    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier):
+    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, target_label: str = None):
         self.selected_HAL: HAL_base = selected_HAL
         self.vision: VisualObjectIdentifier = vision
         self.imageGetter: ImageProducer = selected_HAL
@@ -190,6 +191,10 @@ class FollowClawController(Controller):
         self.keep_running = False
         self.thread = None
         self.verbose_logging = False
+        self.target_label = target_label
+        
+        self.last_frame_objects: List[VisionObject] = []
+        self.last_frame_objects_lock: Lock = threading.Lock()
         
         self.K = 1
         self.lambda_ = 3          # change (3 is smooth in sim) increase number to go slower
@@ -222,6 +227,41 @@ class FollowClawController(Controller):
         selected_HAL.set_joint_min(0, 0) # set_base_min_degree(0)
         selected_HAL.set_joint_max(0, 270) # set_base_max_degree(270)
         selected_HAL.set_joint_max(2, 75) # set_joint_2_max(75)
+        
+    def set_target_label(self, label: str) -> bool:
+        """This controller will only target objects with the specified label."""
+        if self.is_label_in_universe(label):
+            self.target_label = label
+            return True
+        else:
+            print(f"Label {label} is not in the universe of {self.__name__}.")
+            print(f"Please select a lable that is in universe: {self.vision.get_all_potential_labels()}")
+            return False
+        
+    def is_label_in_universe(self, label: str) -> bool:
+        """Returns True if the label is something this controler can see, else false."""
+        all_labels = self.vision.get_all_potential_labels()
+        return (label in all_labels)
+    
+    def get_visible_object_labels(self) -> list[str]:
+        """Returns a list of identifiers of objects that are visible to the arm"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            return [obj.label for obj in self.last_frame_objects]
+        
+    def get_visible_object_labels_detailed(self) -> list[str]:
+        """Returns a list of objects that are visible to the arm, including metadata"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            # return a series of string that represent the object, starting withe object's label, then radius, then metadata
+            return [f"{obj.label} radius: {obj.radius} {obj.metadata}" for obj in self.last_frame_objects]
+            #return [f"{obj.label}_object" for obj in self.last_frame_objects]
+    
+    def get_all_posible_labels(self) -> list[str]:
+        """Returns a list of all possible labels that this controller can see, even if they are not currently visible."""
+        return self.vision.get_all_potential_labels()
         
     def get_error(self, frame_center, center):
         return center - frame_center
@@ -334,9 +374,26 @@ class FollowClawController(Controller):
             coordinate_input(ballPosition[0], ballPosition[1], ballPosition[2], self.selected_HAL,True)
             asyncio.sleep(0.03)  #run detection every 1/30 seconds
         
-    def select_largest_object(self, detected_objects: List[VisionObject]) -> VisionObject:
+    def select_largest_target_object(self, detected_objects: List[VisionObject]) -> VisionObject:
+        # print("found: " + str(len(detected_objects)) + " objects")
+        
+        # # print the labels of all visible objects on one line
+        # for obj in detected_objects:
+        #     print(obj.label, end=", ")
+        # print()
+        
         if detected_objects:
-            return max(detected_objects, key=lambda obj: obj.radius)
+            found_target = None
+            for obj in detected_objects:
+                if obj.label == self.target_label:
+                    if found_target is not None:
+                        if obj.radius > found_target.radius:
+                            found_target = obj
+                    else:
+                        found_target = obj
+            
+            # print("largest object: " + str(found_target.label))
+            return found_target
         else:
             return None
         
@@ -432,7 +489,7 @@ class FollowClawController(Controller):
 
         detected_objects: List[VisionObject] = self.vision.process_frame(pframe) 
         
-        largest_object: VisionObject = self.select_largest_object(detected_objects)   
+        largest_object: VisionObject = self.select_largest_target_object(detected_objects)   
         
         self.object_found = (largest_object is not None)
         if(self.object_found):
@@ -452,6 +509,9 @@ class FollowClawController(Controller):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
             return False
+        
+        with self.last_frame_objects_lock:
+            self.last_frame_objects = detected_objects
         
         await asyncio.sleep(0.03)  #run detection every 1/30 seconds
     def calculate_base_theta(self):

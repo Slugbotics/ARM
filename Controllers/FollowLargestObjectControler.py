@@ -3,6 +3,7 @@ import math
 from typing import List
 import cv2
 import asyncio
+from threading import Lock
 
 from HALs.HAL_base import HAL_base
 from Vision.VisionObject import VisionObject
@@ -11,7 +12,7 @@ from Modules.Base.ImageProducer import ImageProducer
 from Controllers.Controller import Controller
 
 class FollowLargestObjectControler(Controller):
-    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier):
+    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, target_label: str = None):
         self.selected_HAL: HAL_base = selected_HAL
         self.vision: VisualObjectIdentifier = vision
         self.imageGetter: ImageProducer = selected_HAL
@@ -20,6 +21,12 @@ class FollowLargestObjectControler(Controller):
         self.keep_running = False
         self.thread = None
         self.verbose_logging = False
+        self.target_label = target_label
+        if self.target_label is not None:
+            self.target_label = self.target_label.lower()
+        
+        self.last_frame_objects: List[VisionObject] = []
+        self.last_frame_objects_lock: Lock = threading.Lock()
         
         self.K = 1
         self.lambda_ = 3          # change (3 is smooth in sim) increase number to go slower
@@ -36,9 +43,50 @@ class FollowLargestObjectControler(Controller):
         self.servo_2 = 0
         self.movement_speed = 1       # 1/10 seconds
         self.servo1_constraint = 45
-        selected_HAL.set_joint_min(0, 0) # set_base_min_degree(0)
+        selected_HAL.set_joint_min(0, 0)   # set_base_min_degree(0)
         selected_HAL.set_joint_max(0, 270) # set_base_max_degree(270)
-        selected_HAL.set_joint_max(2, 75) # set_joint_2_max(75)
+        selected_HAL.set_joint_max(2, 75)  # set_joint_2_max(75)
+        
+        if self.target_label is None:
+            all_labels = self.vision.get_all_potential_labels()
+            if len(all_labels) > 0:
+                self.target_label = all_labels[0].lower()
+                
+    def set_target_label(self, label: str) -> bool:
+        """This controller will only target objects with the specified label."""
+        if self.is_label_in_universe(label):
+            self.target_label = label.lower()
+            return True
+        else:
+            print(f"Label \"{label}\" is not in the universe of {type(self).__name__}.")
+            print(f"Please select a lable that is in universe: {self.vision.get_all_potential_labels()}")
+            return False   
+        
+    def is_label_in_universe(self, label: str) -> bool:
+        """Returns True if the label is something this controler can see, else false."""
+        all_labels = self.vision.get_all_potential_labels()
+        return label.lower() in (l.lower() for l in all_labels)
+
+    
+    def get_visible_object_labels(self) -> list[str]:
+        """Returns a list of identifiers of objects that are visible to the arm"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            return [obj.label for obj in self.last_frame_objects]
+        
+    def get_visible_object_labels_detailed(self) -> list[str]:
+        """Returns a list of objects that are visible to the arm, including metadata"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            # return a series of string that represent the object, starting withe object's label, then radius, then metadata
+            return [f"{obj.label} radius: {obj.radius} {obj.metadata}" for obj in self.last_frame_objects]
+            #return [f"{obj.label}_object" for obj in self.last_frame_objects]
+    
+    def get_all_posible_labels(self) -> list[str]:
+        """Returns a list of all possible labels that this controller can see, even if they are not currently visible."""
+        return self.vision.get_all_potential_labels()
         
     def get_error(self, frame_center, center):
         return center - frame_center
@@ -108,9 +156,26 @@ class FollowLargestObjectControler(Controller):
                 
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
         
-    def select_largest_object(self, detected_objects: List[VisionObject]) -> VisionObject:
+    def select_largest_target_object(self, detected_objects: List[VisionObject]) -> VisionObject:
+        # print("found: " + str(len(detected_objects)) + " objects")
+        
+        # # print the labels of all visible objects on one line
+        # for obj in detected_objects:
+        #     print(obj.label, end=", ")
+        # print()
+        
         if detected_objects:
-            return max(detected_objects, key=lambda obj: obj.radius)
+            found_target = None
+            for obj in detected_objects:
+                if obj.label.lower() == self.target_label:
+                    if found_target is not None:
+                        if obj.radius > found_target.radius:
+                            found_target = obj
+                    else:
+                        found_target = obj
+            
+            # print("largest object: " + str(found_target.label))
+            return found_target
         else:
             return None
         
@@ -118,15 +183,15 @@ class FollowLargestObjectControler(Controller):
         #calculate the distance from the centmessage.params[1]er of the frame
         frame_center_x = obj.frame_width // 2
         frame_center_y = obj.frame_height // 2
-        self.error_x_distance = self.get_error(frame_center_x, obj.x)
-        self.error_y_distance = self.get_error(frame_center_y, obj.y)
+        self.error_x_distance = self.get_error(frame_center_x, obj.get_center_x())
+        self.error_y_distance = self.get_error(frame_center_y, obj.get_center_y())
         self.pixel_dia = obj.radius
         if self.verbose_logging:
             print(f"Error X: {self.error_x_distance}, Error Y: {self.error_y_distance}, Radius: {self.pixel_dia}")
 
         #draw the bounding circle and the center of it
         if draw_frame is not None:
-            center = (obj.x, obj.y)
+            center = (obj.get_center_x(), obj.get_center_y())
             cv2.circle(draw_frame, center, obj.radius, (0, 255, 0), 2)
             cv2.circle(draw_frame, center, 7, (255, 255, 255), -1)
 
@@ -139,18 +204,22 @@ class FollowLargestObjectControler(Controller):
             
         detected_objects: List[VisionObject] = self.vision.process_frame(frame) 
         
-        largest_object: VisionObject = self.select_largest_object(detected_objects)   
+        target_object: VisionObject = self.select_largest_target_object(detected_objects)   
         
-        self.object_found = (largest_object is not None)
+        self.object_found = (target_object is not None)
         if(self.object_found):
-            await self.move_towards_object(largest_object, frame)
+            await self.move_towards_object(target_object, frame)
         
-            cv2.imshow('Frame', cv2.flip(largest_object.source_frame_hsv, 0))
-            cv2.imshow('Mask', cv2.flip(largest_object.mask, 0))
-            # cv2.imshow('Mask', mask)
+            cv2.imshow('Frame', cv2.flip(target_object.source_frame_hsv, 0))
+            if target_object.mask is not None:
+                cv2.imshow('Mask', cv2.flip(target_object.mask, 0))
+                # cv2.imshow('Mask', mask)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
             return False
+        
+        with self.last_frame_objects_lock:
+            self.last_frame_objects = detected_objects
         
         await asyncio.sleep(0.03)  #run detection every 1/30 seconds
         
