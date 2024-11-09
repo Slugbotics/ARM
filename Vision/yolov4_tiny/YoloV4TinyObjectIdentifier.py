@@ -70,3 +70,4 @@ class YoloV4TinyObjectIdentifier(VisualObjectIdentifier):
     
     def get_all_potential_labels(self) -> List[str]: 
         """ Retrieves all potential labels that can be identified by this object identifier. """
+        return self.class_names
