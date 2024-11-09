@@ -214,9 +214,9 @@ class FollowLargestObjectControler(Controller):
             rgb_image = cv2.cvtColor(flipped_source_frame_hsv, cv2.COLOR_HSV2BGR)
             cv2.imshow('Frame', rgb_image)
             if target_object.mask is not None:
-                flipped_mask = cv2.flip(target_object.mask, 0)
-                cv2.imshow('Mask', flipped_mask)
-                # cv2.imshow('Mask', mask)
+                # flipped_mask = cv2.flip(target_object.mask, 0)
+                # cv2.imshow('Mask', flipped_mask)
+                cv2.imshow('Mask', target_object.mask)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
             return False

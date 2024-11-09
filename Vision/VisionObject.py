@@ -28,7 +28,7 @@ class VisionObject():
         
         self.source_frame_hsv = source_frame_hsv
         self.metadata = {}
-        self.set_metadata("mask", mask)
+        self.mask = mask        
         
     def get_center_x(self):
         return self.top_left_x + self.width // 2    
