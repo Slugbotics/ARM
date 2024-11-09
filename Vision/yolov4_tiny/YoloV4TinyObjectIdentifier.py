@@ -49,8 +49,7 @@ class YoloV4TinyObjectIdentifier(VisualObjectIdentifier):
         
         objects = []
         
-        print("Identified objects: " + str(len(classes)) + " " + str(len(scores)) + " " + str(len(boxes)) + "   <---------------------")
-        
+        # print("Identified objects: " + str(len(classes)) + " " + str(len(scores)) + " " + str(len(boxes)) + "   <---------------------")
         
         for (classid, score, box) in zip(classes, scores, boxes):
             class_label = self.class_names[classid]
