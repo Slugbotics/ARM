@@ -49,7 +49,7 @@ class physical_HAL(HAL_base):
         self.gripper_control = gripper_stepper_28BYJ()
         self.gripper_state = self.read_gripper_state()
 
-    def start_arm(self):
+    def start_arm(self) -> bool:
         with self.lock:
             self.baseStepper = stepperMicrostep.Stepper(15,14)
             for servo in self.servos:
@@ -70,7 +70,7 @@ class physical_HAL(HAL_base):
         # # Start the camera
         # picam2.start()
 
-    def stop_arm(self):
+    def stop_arm(self) -> bool:
         if goto_zero_on_close:
             # move the servos back to clean positions.
             self.set_joint(0,0)
@@ -88,7 +88,7 @@ class physical_HAL(HAL_base):
         self.is_started = False
         #UNDO COMMENT # picam2.stop()
 
-    def get_arm_cam_img_hsv(self):
+    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike:
         if not self.is_started:
             return None
         
@@ -99,7 +99,7 @@ class physical_HAL(HAL_base):
         # cv2.waitKey(1)
         return hsv
 
-    def set_joint(self, joint_index, joint_angle):
+    def set_joint(self, joint_index, joint_angle) -> bool:
         
         if not self.is_started:
             print("Unable to set joint " + joint_index + " because the arm is not started")
@@ -128,16 +128,16 @@ class physical_HAL(HAL_base):
         except Exception as err:
             print(f"Exeption in moving the arm: {err=}, {type(err)=}")
 
-    def get_joint(self, joint_index):
+    def get_joint(self, joint_index) -> float:
         if(joint_index == 0):
             return self.baseStepper.get_current_rotation()
         else:
             return self.kit.servo[self.servos[joint_index - 1][0]].angle
             
-    def joint_count(self):
+    def joint_count(self) -> int:
         return 4
     
-    def gripper_open(self):
+    def gripper_open(self) -> bool:
         if self.gripper_state == GRIPPER_OPEN_VALUE:
             return False
         
@@ -146,7 +146,7 @@ class physical_HAL(HAL_base):
             self.gripper_control.open()
         return True
     
-    def gripper_close(self):
+    def gripper_close(self) -> bool:
         if self.self.gripper_state == GRIPPER_CLOSE_VALUE:
             return False
         

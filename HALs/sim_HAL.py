@@ -11,7 +11,7 @@ from HALs.HAL_base import HAL_base
 D_TO_R = math.pi / 180
 R_TO_D = 180 / math.pi
 
-# this function is super importent for performance reasons
+# this function is super important for performance reasons
 # Warning Chat GPT is great
 def unpack_uint8_table(image_data):
     # Assuming image_data is a byte array
@@ -36,7 +36,7 @@ class sim_HAL(HAL_base):
         self.lock = threading.Lock()
         self.host = host
 
-    def start_arm(self):
+    def start_arm(self) -> bool:
 
         if self.sim is None:
             with self.lock:
@@ -57,16 +57,16 @@ class sim_HAL(HAL_base):
                 # start sim
                 self.sim.startSimulation()
 
-    def stop_arm(self):
+    def stop_arm(self) -> bool:
         # global sim
         with self.lock:
             self.sim.stopSimulation()
             print("--------- Ended ARM_SIM ---------")
 
-    def joint_count(self):
+    def joint_count(self) -> int:
         return self.motorCount
 
-    def set_joint(self, joint_index, joint_angle):
+    def set_joint(self, joint_index, joint_angle) -> bool:
         
         # Check if the joint angle is within the bounds
         if(joint_angle < self.get_joint_min(joint_index)):
@@ -79,11 +79,11 @@ class sim_HAL(HAL_base):
             with self.lock:
                 self.sim.setJointTargetPosition(self.mtr[int(joint_index)], float(joint_angle) * D_TO_R)
 
-    def get_joint(self, joint_index):
+    def get_joint(self, joint_index) -> float:
         with self.lock:
             return self.sim.getJointPosition(self.mtr[int(joint_index)]) * R_TO_D
 
-    def get_arm_cam_img_hsv(self):
+    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike:
 
         with self.lock:
             image, resolution = self.sim.getVisionSensorImg(self.sensorHandle)
@@ -96,8 +96,8 @@ class sim_HAL(HAL_base):
 
         return hsv_image
     
-    def gripper_open(self):
+    def gripper_open(self) -> bool:
         return False
     
-    def gripper_close(self):
+    def gripper_close(self) -> bool:
         return False
