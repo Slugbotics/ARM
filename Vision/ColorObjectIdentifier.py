@@ -144,7 +144,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             # Store contours under the color name
-            contours_by_color[color_name] = contours
+            contours_by_color[color_name] = (contours, mask)
 
         return contours_by_color
 
@@ -156,7 +156,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
         contours_by_color = self.separate_objects_by_color(hsv_image)
 
         objects = []
-        for color, contours in contours_by_color.items():
+        for color, (contours, mask) in contours_by_color.items():
             for contour in contours:
                 # Process each contour for the detected color
                 # cv2.drawContours(image, [contour], -1, (255, 255, 255), 2)  # Example: Draw in white for visibility
@@ -173,7 +173,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 x, y, w, h = cv2.boundingRect(contour)
                     
                 object_name: str = f"{color} object"
-                new_object = VisionObject(object_name, image_height, image_width, x, y, w, h, radius, hsv_image)
+                new_object = VisionObject(object_name, image_height, image_width, x, y, w, h, radius, hsv_image, mask)
                 new_object.set_metadata("radius", radius)
                 new_object.set_metadata("shape", shape)
                 new_object.set_metadata("color", color)
