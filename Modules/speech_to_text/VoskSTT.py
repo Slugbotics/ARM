@@ -99,8 +99,8 @@ class VoskSTT(STTBase):
     def deactivate(self) -> bool:
         """Stop the microphone listening."""
         self.active = False
-        if self.listening_thread and self.listening_thread.is_alive():
-            self.listening_thread.join()  # Wait for the listening thread to finish
+        # if self.listening_thread and self.listening_thread.is_alive():
+            # self.listening_thread.join()  # Wait for the listening thread to finish
         return True
 
     def get_microphone_name(self):
