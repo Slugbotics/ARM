@@ -238,6 +238,10 @@ class FollowClawController(Controller):
             print(f"Please select a lable that is in universe: {self.vision.get_all_potential_labels()}")
             return False
         
+    def get_target_label(self) -> str:
+        """Returns the label of the object that the controller is currently targeting."""
+        return self.target_label
+        
     def is_label_in_universe(self, label: str) -> bool:
         """Returns True if the label is something this controler can see, else false."""
         all_labels = self.vision.get_all_potential_labels()
