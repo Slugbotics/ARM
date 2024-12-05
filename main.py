@@ -182,7 +182,7 @@ upper_red = np.array([40, 255, 255])
 selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier()
 
 # controler stuff
-selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier, "Blue object")
+selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier, "none")
 
 selected_app = None
 if config["use_app"]:
