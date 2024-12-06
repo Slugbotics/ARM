@@ -33,6 +33,9 @@ class HAL_base(ImageProducer):
     def capture_image(self) -> cv2.typing.MatLike:
         return self.get_arm_cam_img_hsv()
     
+    """This function will give the focal length of the camera in pixels, this is required for distance calculation"""
+    def get_camera_focal_length(self) -> float: ...        
+    
     def gripper_open(self) -> bool: ...
         #return False
         

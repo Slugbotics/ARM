@@ -5,6 +5,8 @@ from typing import List
 from Vision.VisionObject import VisionObject
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 
+FIXED_OBJECT_WIDTH = 3.93701  # 10 cm in inches (default size of spheres in copilia sim)
+
 # Define color boundaries in HSV space for distinct colors
 COLOR_RANGES = {
     "Red": [(0, 50, 50), (10, 255, 255)],
@@ -148,6 +150,22 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
 
         return contours_by_color
 
+    def calculate_distance_to_object(self, focal_length, real_object_width, object_width_pixels):
+        """
+        Calculate the distance to an object using its size in the image and real-world size.
+
+        Args:
+            focal_length: Focal length of the camera in pixels.
+            real_object_width: Real-world width of the object (e.g., in meters or centimeters).
+            object_width_pixels: Width of the object in the image (in pixels).
+
+        Returns:
+            Distance to the object (in the same units as real_object_width).
+        """
+        if object_width_pixels == 0:
+            raise ValueError("Object width in pixels cannot be zero.")
+        return (real_object_width * focal_length) / object_width_pixels
+
     def extract_objects(self, hsv_image: cv2.typing.MatLike) -> List[VisionObject]:
         
         image_height: int = hsv_image.shape[0]
@@ -172,6 +190,8 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 # Calculate the bounding box for each object
                 x, y, w, h = cv2.boundingRect(contour)
                     
+                distance_from_camera_inches = self.calculate_distance_to_object(1, FIXED_OBJECT_WIDTH, w)
+                    
                 object_name: str = f"{color} object"
                 new_object = VisionObject(object_name, image_height, image_width, x, y, w, h, radius, hsv_image, mask)
                 new_object.set_metadata("radius", radius)
@@ -179,6 +199,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 new_object.set_metadata("color", color)
                 new_object.set_metadata("center", center)
                 new_object.set_metadata("contour", contour)
+                new_object.set_metadata("distance_inches", distance_from_camera_inches)
                 
                 objects.append(new_object)
                 

@@ -96,6 +96,38 @@ class sim_HAL(HAL_base):
 
         return hsv_image
     
+    def calculate_focal_length(self, sim, sensor_handle):
+        """
+        Calculate the focal length of a vision sensor in a CoppeliaSim scene using ZeroMQ-based API.
+
+        Args:
+            sim: The CoppeliaSim remote API object.
+            sensor_handle: The handle to the vision sensor.
+
+        Returns:
+            The calculated focal length.
+        """
+        # Get the vision sensor resolution
+        resolution_x = sim.getObjectInt32Param(sensor_handle, sim.visionintparam_resolution_x)
+        resolution_y = sim.getObjectInt32Param(sensor_handle, sim.visionintparam_resolution_y)
+        
+        if resolution_x is None or resolution_y is None:
+            raise RuntimeError("Failed to retrieve sensor resolution.")
+
+        # Get the vision sensor horizontal view angle
+        view_angle = sim.getObjectFloatParam(sensor_handle, sim.visionfloatparam_perspective_angle)
+        if view_angle is None:
+            raise RuntimeError("Failed to retrieve sensor view angle.")
+
+        # Calculate focal length
+        focal_length = resolution_x / (2 * math.tan(view_angle / 2))
+        
+        return focal_length
+    
+    def get_camera_focal_length(self) -> float:
+        with self.lock:            
+            return self.calculate_focal_length(self.sim, self.sensorHandle)
+    
     def gripper_open(self) -> bool:
         return False
     

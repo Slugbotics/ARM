@@ -1,6 +1,7 @@
 import time
 import struct
 import threading
+import math
 from math import pi
 # import Simulation.kinematicsPYV1 as kine
 import numpy as np
@@ -26,6 +27,8 @@ GRIPPER_CLOSE_VALUE = 1
 goto_zero_on_close = False
 
 class physical_HAL(HAL_base):
+
+    HORIZONTAL_FOV_DEGREES = 62.2
 
     kit = ServoKit(channels=16)
 
@@ -98,6 +101,30 @@ class physical_HAL(HAL_base):
         # cv2.imshow("Camera", hsv)
         # cv2.waitKey(1)
         return hsv
+    
+    def get_camera_focal_length(self) -> float:
+        with self.camera_lock:
+            camera_metadata = self.picam2.camera_properties
+            print("Fetching the focal length, if this cameras properties include the focal length or horizontal Field of View, make it so this function returns that instead of using a fixed value")
+            print(camera_metadata)
+            
+            try:             
+                # Get the resolution of the current camera configuration
+                resolution = self.picam2.capture_configuration()['size']
+                image_width, image_height = resolution
+                
+                # Convert FoV from degrees to radians
+                horizontal_fov_radians = math.radians(physical_HAL.HORIZONTAL_FOV_DEGREES)
+                
+                # Calculate the focal length in pixels
+                focal_length = image_width / (2 * math.tan(horizontal_fov_radians / 2))
+                
+                return focal_length
+            except Exception as err:
+                print(f"Error calculating the focal length: {err=}, {type(err)=}")
+        
+        return -1
+        
 
     def set_joint(self, joint_index, joint_angle) -> bool:
         
