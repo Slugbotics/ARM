@@ -31,6 +31,8 @@ class VoskSTT(STTBase):
         self.listening_thread = None
         self.text_deque = deque()
         self.text_lock = threading.Lock()
+        self.immidate_shutdown = False
+        self.deactivate_after_next_sentence = False
         
         if self.selected_default_model is None:
             self.selected_default_model = VoskSTT.DEFAULT_MODEL_SMALL
@@ -98,7 +100,10 @@ class VoskSTT(STTBase):
 
     def deactivate(self) -> bool:
         """Stop the microphone listening."""
-        self.active = False
+        if self.immidate_shutdown:
+            self.active = False
+        else:
+            self.deactivate_after_next_sentence = True
         # if self.listening_thread and self.listening_thread.is_alive():
             # self.listening_thread.join()  # Wait for the listening thread to finish
         return True
@@ -137,6 +142,9 @@ class VoskSTT(STTBase):
                 if self.recognizer.AcceptWaveform(data):
                     result = json.loads(self.recognizer.Result())
                     self.on_speech_detected(result.get('text', ''))
+                    if self.deactivate_after_next_sentence:
+                        self.active = False
+                        self.deactivate_after_next_sentence = False
                 else:
                     # You could handle partial results here if needed
                     pass
