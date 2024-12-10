@@ -3,11 +3,13 @@ import argparse
 import numpy as np
 import cv2
 import json
+from pynput import keyboard
 
 from Modules.Commands.Commands import Commands
-from Modules.Commands.DefaultCommands import register_default_commands
+from Modules.Commands.DefaultCommands import register_default_commands, register_controler_commands
 from Modules.ConsoleInput import ConsoleInput
 from Modules.Console import Console
+from Modules.HotkeyManager import HotkeyManager
 
 from Modules.Base.TextOut import TextOut
 from HALs.HAL_base import HAL_base
@@ -21,7 +23,7 @@ from Controllers.FollowLargestObjectControler import FollowLargestObjectControle
 from Controllers.FollowClaw import FollowClawController
 
 from Modules.Language.LanguageInterpreter import LanguageInterpreter
-from Modules.Language.LanguageTools import register_default_tools
+from Modules.Language.LanguageTools import register_default_tools, register_controler_tools
 
 import subprocess
 import sys
@@ -37,6 +39,7 @@ config = {
     "use_server" : True,
     "use_twitch" : False,
     "use_stt" : True,
+    "stt_push_to_talk" : False,
     "stt_model_large" : False,
     "open_startup_page" : False,
     "write_logs" : True,
@@ -59,6 +62,7 @@ selected_voice: TextOut = Console()
 commands: Commands = Commands()
 console_input: ConsoleInput = ConsoleInput()
 language_interpreter: LanguageInterpreter = None
+hotkey_manager: HotkeyManager = HotkeyManager()
 
 # ARG parsing
 parser = argparse.ArgumentParser()
@@ -149,11 +153,13 @@ def twitch_input_handeler(input_str: str) -> None:
     
 console_input = ConsoleInput(console_input_handeler, ">> ")
 register_default_commands(commands)
+register_controler_commands(commands, lambda: selected_controler)
 
 # Language stuff
 if config["use_language_model"]:
     language_interpreter = LanguageInterpreter(config["language_model_file"])
     register_default_tools(language_interpreter)
+    register_controler_tools(language_interpreter, lambda: selected_controler)
     commands.add_command("llm", lambda args: selected_voice.write_line(language_interpreter.run(args)),
                         "Runs the provided input on the language model")
 
@@ -173,10 +179,10 @@ lower_blue = np.array([100, 150, 50])
 upper_blue = np.array([140, 255, 255])
 lower_red = np.array([0, 150, 50])
 upper_red = np.array([40, 255, 255])
-selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier(lower_blue, upper_blue)
+selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier()
 
 # controler stuff
-selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier)
+selected_controler: Controller = FollowLargestObjectControler(selected_HAL, selected_object_identifier, "none")
 
 selected_app = None
 if config["use_app"]:
@@ -207,7 +213,19 @@ if config["use_stt"]:
     selected_stt: STTBase = VoskSTT(on_sentence_heard_fnc = speech_input_handeler)
     if config["stt_model_large"]:
         selected_stt.set_selected_default_model(VoskSTT.DEFAULT_MODEL_LARGE)
-    selected_stt.start()
+    selected_stt.start()    
+    if config["stt_push_to_talk"]:
+        print("Speech Recognition is in push to talk mode - press left-shift to activate")
+        def stt_activate():
+            if not selected_stt.is_active():                
+                selected_stt.activate()
+                print("Speech Recognition is now active")
+        def stt_deactivate():
+            if selected_stt.is_active():                
+                selected_stt.deactivate()
+                print("Speech Recognition is now inactive")
+        hotkey_manager.add_key_press_callback(keyboard.Key.shift, stt_activate) 
+        hotkey_manager.add_key_release_callback(keyboard.Key.shift, stt_deactivate) 
 
 print('              Selected HAL: ' + selected_HAL.__class__.__name__)
 print('Selected object_identifier: ' + selected_object_identifier.__class__.__name__)
@@ -241,11 +259,13 @@ if __name__ == "__main__":
             selected_twitch.connect_to_twitch(config["twitch_channel_name"], twitch_input_handeler)
 
     # start listening to speech
-    if selected_stt is not None:
+    if selected_stt is not None and not config["stt_push_to_talk"]:
         selected_stt.activate()
     
     if selected_tts is not None:
         selected_tts.say("Arm startup.")
+        
+    hotkey_manager.start()
         
     # ----------------- END SETUP -----------------
     
@@ -277,6 +297,7 @@ if __name__ == "__main__":
 
     print("Arm shutdown")
     keep_running = False
+    hotkey_manager.stop()
     if config["use_twitch"]:
         selected_twitch.stop_twitch_chat()
     # stop listening to speech

@@ -133,35 +133,17 @@ class Server(ServerBase):
         print("Releasing")
         return self.selected_HAL.gripper_open()
 
-    def set_color_bounds(self, color_lower_bound: np.array, color_upper_bound: np.array):
-        if(self.objectIdentifier != None):
-            self.objectIdentifier.set_color_lower_bound(color_lower_bound)
-            self.objectIdentifier.set_color_upper_bound(color_upper_bound)
-        else:
-            print("self.objectIdentifier not found!")
-
     def vison_tar_red(self):
-        print("Targeting red")
-        color_lower_bound = np.array([0, 100, 100])
-        color_upper_bound = np.array([10, 255, 255])
-        self.set_color_bounds(color_lower_bound, color_upper_bound)
+        print("server - Targeting red")        
+        self.controller.set_target_label("Red_object")
 
     def vison_tar_green(self):
-        print("Targeting green")
-        color_lower_bound = np.array([50, 100, 100])
-        color_upper_bound = np.array([70, 255, 255])
-        self.set_color_bounds(color_lower_bound, color_upper_bound)
+        print("server - Targeting green")
+        self.controller.set_target_label("Green_object")
 
     def vison_tar_blue(self):
         print("Targeting blue")
-        # ChatGPT
-        # color_lower_bound = np.array([110, 100, 100])
-        # color_upper_bound = np.array([130, 255, 255])
-
-        # Mr.Sam
-        color_lower_bound = np.array([100, 150, 50])
-        color_upper_bound = np.array([140, 255, 255])
-        self.set_color_bounds(color_lower_bound, color_upper_bound)
+        self.controller.set_target_label("Blue_object")
 
     # Placeholder function to control the robotic arm
     def control_robotic_arm(self, command):

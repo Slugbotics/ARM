@@ -58,3 +58,4 @@ flask-sock
 vosk
 pyaudio
 pyttsx3
+pynput
