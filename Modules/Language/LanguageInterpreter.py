@@ -25,6 +25,8 @@ def tool(description: str, **parameter_descriptions):
         return func
     return tool_decorator
 
+DEFAULT_MODEL_FROM = "llama3.2:3b"
+
 DEFAULT_MODEL_FILE = """FROM llama3.2:3b
 PARAMETER temperature 0
 SYSTEM \"""You have the ability to control a robotic arm using tool calling.
@@ -49,7 +51,7 @@ class LanguageInterpreter:
             with open(model_file_path, "w") as f:
                 f.write(DEFAULT_MODEL_FILE)
         last_status_line = ""
-        for info in ollama.create("arm_model", path=model_file_path, stream=True):
+        for info in ollama.create(model="arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True):
             status_line = f"Loading arm language model from '{model_file_path}': " + info["status"]
             if "total" in info and "completed" in info:
                 status_line += " (" + str(info["total"]) + " / " + str(info["completed"]) + ")"
