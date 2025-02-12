@@ -4,7 +4,7 @@ from inspect import signature, Parameter
 from typing import Callable
 import os.path
 import httpcore
-from OLLAMA_installer import install_ollama, prompt_user
+from Modules.Language.OLLAMA_installer import install_ollama, prompt_user
 
 def tool(description: str, **parameter_descriptions):
     def tool_decorator(func: Callable):
@@ -26,6 +26,8 @@ def tool(description: str, **parameter_descriptions):
                 func.tool_required_params.append(param_name)
         return func
     return tool_decorator
+
+DEFAULT_MODEL_FROM = "llama3.2:3b"
 
 DEFAULT_MODEL_FILE = """FROM llama3.2:3b
 PARAMETER temperature 0
@@ -54,12 +56,12 @@ class LanguageInterpreter:
         
         ollama_infos = None
         try:
-            ollama_infos = ollama.create("arm_model", path=model_file_path, stream=True)
+            ollama_infos = ollama.create("arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True)
         except httpcore.ConnectError as ex:
             print("Error loading arm language model: " + repr(ex))
             if prompt_user("Ollama is not installed. Would you like to install it?"):
                 install_ollama()
-                ollama_infos = ollama.create("arm_model", path=model_file_path, stream=True)
+                ollama_infos = ollama.create("arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True)
             
         for info in ollama_infos:
             status_line = f"Loading arm language model from '{model_file_path}': " + info["status"]
