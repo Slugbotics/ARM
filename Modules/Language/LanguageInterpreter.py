@@ -3,6 +3,8 @@ import ollama._types
 from inspect import signature, Parameter
 from typing import Callable
 import os.path
+import httpcore
+from OLLAMA_installer import install_ollama, prompt_user
 
 def tool(description: str, **parameter_descriptions):
     def tool_decorator(func: Callable):
@@ -51,7 +53,17 @@ class LanguageInterpreter:
             with open(model_file_path, "w") as f:
                 f.write(DEFAULT_MODEL_FILE)
         last_status_line = ""
-        for info in ollama.create(model="arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True):
+        
+        ollama_infos = None
+        try:
+            ollama_infos = ollama.create("arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True)
+        except httpcore.ConnectError as ex:
+            print("Error loading arm language model: " + repr(ex))
+            if prompt_user("Ollama is not installed. Would you like to install it?"):
+                install_ollama()
+                ollama_infos = ollama.create("arm_model", from_=DEFAULT_MODEL_FROM, files={"path": model_file_path}, stream=True)
+            
+        for info in ollama_infos:
             status_line = f"Loading arm language model from '{model_file_path}': " + info["status"]
             if "total" in info and "completed" in info:
                 status_line += " (" + str(info["total"]) + " / " + str(info["completed"]) + ")"

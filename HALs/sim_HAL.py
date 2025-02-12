@@ -38,6 +38,7 @@ class sim_HAL(HAL_base):
 
     def start_arm(self) -> bool:
 
+        print("Connecting to CoppeliaSim...")
         if self.sim is None:
             with self.lock:
                 # remote API init
@@ -56,6 +57,7 @@ class sim_HAL(HAL_base):
 
                 # start sim
                 self.sim.startSimulation()
+        print("Finished connecting to CoppeliaSim!")
 
     def stop_arm(self) -> bool:
         # global sim
