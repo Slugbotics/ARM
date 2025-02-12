@@ -59,3 +59,4 @@ vosk
 pyaudio
 pyttsx3
 pynput
+httpcore
