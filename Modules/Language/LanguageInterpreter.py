@@ -4,7 +4,7 @@ from inspect import signature, Parameter
 from typing import Callable
 import os.path
 import httpcore
-from OLLAMA_installer import install_ollama, prompt_user
+from Modules.Language.OLLAMA_installer import install_ollama, prompt_user
 
 def tool(description: str, **parameter_descriptions):
     def tool_decorator(func: Callable):
