@@ -29,3 +29,4 @@ Logs/
 
 # Language model files
 *.Modelfile
+/winv
