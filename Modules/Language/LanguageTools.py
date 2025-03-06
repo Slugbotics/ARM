@@ -1,5 +1,5 @@
 from Controllers.Controller import Controller
-from Modules.Language.LanguageInterpreter import LanguageInterpreter, tool
+from Modules.Language.LanguageInterpreterBase import LanguageInterpreterBase, tool
 import requests
 from typing import Callable
 
@@ -23,7 +23,7 @@ def set_look_at_target_label(label: str) -> bool:
 def get_look_at_target_label() -> str:
     return controller_getter().get_target_label()
 
-def register_controler_tools(interpreter: LanguageInterpreter, new_controller_getter: Callable[[None], Controller]):
+def register_controler_tools(interpreter: LanguageInterpreterBase, new_controller_getter: Callable[[None], Controller]):
     """Registers tools that require a controller to be set"""
     global controller_getter
     controller_getter = new_controller_getter
@@ -38,6 +38,6 @@ def http_get(url: str) -> str:
     res = requests.get(url=url)
     return res.text
 
-def register_default_tools(interpreter: LanguageInterpreter):
+def register_default_tools(interpreter: LanguageInterpreterBase):
     """Registers default tools the arm AI can use"""
     interpreter.add_tool(http_get)

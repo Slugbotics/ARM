@@ -1,4 +1,6 @@
 from typing import List
+import subprocess
+import sys
 import argparse
 import numpy as np
 import cv2
@@ -17,6 +19,7 @@ from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Controllers.Controller import Controller
 from Modules.server.ServerBase import ServerBase
 from Modules.speech_to_text.STTBase import STTBase
+from Modules.Language.LanguageInterpreterBase import LanguageInterpreterBase
 
 from Vision.ColorObjectIdentifier import ColorObjectIdentifier
 from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
@@ -24,9 +27,6 @@ from Controllers.FollowClaw import FollowClawController
 
 from Modules.Language.LanguageInterpreter import LanguageInterpreter
 from Modules.Language.LanguageTools import register_default_tools, register_controler_tools
-
-import subprocess
-import sys
 
 # Configuration
 # these are the default values, they are saved in a file called config.json that is ignored by git.
@@ -61,7 +61,7 @@ selected_tts = None
 selected_voice: TextOut = Console()
 commands: Commands = Commands()
 console_input: ConsoleInput = ConsoleInput()
-language_interpreter: LanguageInterpreter = None
+language_interpreter: LanguageInterpreterBase = None
 hotkey_manager: HotkeyManager = HotkeyManager()
 
 # ARG parsing
@@ -157,6 +157,7 @@ register_controler_commands(commands, lambda: selected_controler)
 
 # Language stuff
 if config["use_language_model"]:
+    print("language_model_file: \"" + str(config["language_model_file"]) + "\"")
     language_interpreter = LanguageInterpreter(config["language_model_file"])
     register_default_tools(language_interpreter)
     register_controler_tools(language_interpreter, lambda: selected_controler)
