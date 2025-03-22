@@ -69,6 +69,7 @@ class LanguageInterpreter:
         re_run_attempts = 0
         while re_run_attempts < max_re_run_attempts:
             try:
+                re_run_attempts = re_run_attempts + 1
                 for info in ollama_infos:
                     status_line = f"Loading arm language model from '{model_file_path}': " + info["status"]
                     if "total" in info and "completed" in info:
@@ -76,6 +77,7 @@ class LanguageInterpreter:
                     print("\r" + " " * len(last_status_line) + "\r" + status_line, end="")
                     last_status_line = status_line
                 print()
+                break
             except (httpcore.ConnectError, httpx.ConnectError):
                 if prompt_user("Ollama is not installed. Would you like to install it?"):
                     install_ollama()
