@@ -27,11 +27,11 @@ class HAL_base(ImageProducer):
     def joint_count(self) -> int: ...
         #return 0
     
-    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike: ...
+    def get_arm_cam_img_rgb(self) -> cv2.typing.MatLike: ...
         #return None   
     
     def capture_image(self) -> cv2.typing.MatLike:
-        return self.get_arm_cam_img_hsv()
+        return self.get_arm_cam_img_rgb()
     
     """This function will give the focal length of the camera in pixels, this is required for distance calculation"""
     def get_camera_focal_length(self) -> float: ...        

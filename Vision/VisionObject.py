@@ -12,11 +12,11 @@ class VisionObject():
     width : int = 0
     height : int = 0
     
-    source_frame_hsv: cv2.typing.MatLike = None
+    source_frame_rgb: cv2.typing.MatLike = None
     
     mask: cv2.typing.MatLike = None
     
-    def __init__(self, label : str, frame_height: int, frame_width: int, top_left_x : int, top_left_y :int, width: int, height: int, radius: float, source_frame_hsv: cv2.typing.MatLike = None, mask: cv2.typing.MatLike = None) -> None:
+    def __init__(self, label : str, frame_height: int, frame_width: int, top_left_x : int, top_left_y :int, width: int, height: int, radius: float, source_frame_rgb: cv2.typing.MatLike = None, mask: cv2.typing.MatLike = None) -> None:
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.label = label
@@ -26,7 +26,7 @@ class VisionObject():
         self.height = height
         self.radius = radius
         
-        self.source_frame_hsv = source_frame_hsv
+        self.source_frame_rgb = source_frame_rgb
         self.metadata = {}
         self.mask = mask        
         

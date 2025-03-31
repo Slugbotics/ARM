@@ -487,11 +487,11 @@ class FollowClawController(Controller):
     async def update_frame(self) -> bool:
         print("x")
         frame = cv2.resize(self.imageGetter.capture_image(), (0,0), fx=0.25, fy=0.25) 
-        pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        # For Sam Code ON physical****
-        pframe = cv2.flip(pframe, -1)
+        # pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # # For Sam Code ON physical****
+        # pframe = cv2.flip(pframe, -1)
 
-        detected_objects: List[VisionObject] = self.vision.process_frame(pframe) 
+        detected_objects: List[VisionObject] = self.vision.process_frame(frame) 
         
         largest_object: VisionObject = self.select_largest_target_object(detected_objects)   
         
@@ -499,8 +499,8 @@ class FollowClawController(Controller):
         if(self.object_found):
             await self.move_towards_object(largest_object, frame)
         
-            self.frame = cv2.flip(cv2.cvtColor(largest_object.source_frame_hsv, cv2.COLOR_HSV2BGR),0)
-            amask = cv2.cvtColor(largest_object.source_frame_hsv, cv2.COLOR_HSV2BGR)
+            self.frame = cv2.flip(cv2.cvtColor(largest_object.source_frame_rgb, cv2.COLOR_RGB2BGR),0)
+            amask = cv2.cvtColor(largest_object.source_frame_rgb, cv2.COLOR_RGB2BGR)
             self.calculate_sam_theta()
             #self.calculate_theta()
             center = (largest_object.x, largest_object.y)

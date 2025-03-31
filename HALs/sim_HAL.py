@@ -85,18 +85,18 @@ class sim_HAL(HAL_base):
         with self.lock:
             return self.sim.getJointPosition(self.mtr[int(joint_index)]) * R_TO_D
 
-    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike:
+    def get_arm_cam_img_rgb(self) -> cv2.typing.MatLike:
 
         with self.lock:
             image, resolution = self.sim.getVisionSensorImg(self.sensorHandle)
         image_data = unpack_uint8_table(image)
-        image_array = np.array(image_data, dtype=np.uint8)
-        image_array = np.reshape(image_array, (resolution[1], resolution[0], 3))
+        image_array_rgb = np.array(image_data, dtype=np.uint8)
+        image_array_rgb = np.reshape(image_array_rgb, (resolution[1], resolution[0], 3))
 
         # Convert the image from RGB to HSV color space
-        hsv_image = cv2.cvtColor(image_array, cv2.COLOR_RGB2HSV)
+        # hsv_image = cv2.cvtColor(image_array_rgb, cv2.COLOR_RGB2HSV)
 
-        return hsv_image
+        return image_array_rgb
     
     def calculate_focal_length(self, sim, sensor_handle):
         """

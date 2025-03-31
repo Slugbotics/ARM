@@ -52,20 +52,17 @@ class Server(ServerBase):
             self.nextMotor = 1
 
     def get_camera_image(self):
-        # Get the HSV image using the provided function
-        hsv_image = self.selected_HAL.get_arm_cam_img_hsv()
+        # Get the RGB image using the provided function
+        rgb_image = self.selected_HAL.get_arm_cam_img_rgb()
 
-        if hsv_image is None:
-            print("get_camera_image - hsv_image is None!")
+        if rgb_image is None:
+            print("get_camera_image - rgb_image is None!")
             return None
-        
-        # Convert the HSV image back to RGB color space
-        rgb_image = cv2.cvtColor(hsv_image, cv2.COLOR_BGR2RGB)
 
-        rgb_image = cv2.flip(rgb_image, 0)
+        flipped_image_rgb = cv2.flip(rgb_image, 0)
         
         # Create a PIL image from the numpy array
-        pil_image = Image.fromarray(rgb_image)
+        pil_image = Image.fromarray(flipped_image_rgb)
         buffer = BytesIO()
         
         # Save the image to the buffer in JPEG format
@@ -208,10 +205,10 @@ class Server(ServerBase):
 
     def generate(self):
         while True:
-            hsv_image = self.selected_HAL.get_arm_cam_img_hsv()
+            rgb_image = self.selected_HAL.get_arm_cam_img_rgb()
             
-            # Convert the HSV image to BGR for JPEG encoding
-            bgr_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
+            # Convert the RGB image to BGR for JPEG encoding
+            bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
             # Encode the BGR image to JPEG format
             ret, jpeg_image = cv2.imencode('.jpg', bgr_image)

@@ -91,16 +91,16 @@ class physical_HAL(HAL_base):
         self.is_started = False
         #UNDO COMMENT # picam2.stop()
 
-    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike:
+    def get_arm_cam_img_rgb(self) -> cv2.typing.MatLike:
         if not self.is_started:
             return None
         
         with self.camera_lock:
-            frame = self.picam2.capture_array()
-        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        # cv2.imshow("Camera", hsv)
+            frame_rgb = self.picam2.capture_array()
+        # hsv = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+        # cv2.imshow("Camera", frame_rgb)
         # cv2.waitKey(1)
-        return hsv
+        return frame_rgb
     
     def get_camera_focal_length(self) -> float:
         with self.camera_lock:
