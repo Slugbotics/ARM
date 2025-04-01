@@ -7,8 +7,6 @@ import sys
 from Config.ArmRuntime import ArmRuntime
 from Config.ArmConfig import ArmConfig
 
-from Modules.Commands.Commands import Commands
-
 if __name__ == "__main__":
     # ----------------- SETUP -----------------
     print("Arm startup")
