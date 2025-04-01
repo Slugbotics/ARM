@@ -2,8 +2,34 @@ from Controllers.Controller import Controller
 from Modules.Language.LanguageInterpreter import LanguageInterpreter, tool
 import requests
 from typing import Callable
+from typing import List
 
 controller_getter: Callable[[None], Controller] = None
+
+#utility
+def find_closest_matches(target: str, potential_targets: List[str]) -> List[str]:
+    # Define characters to replace with a space
+    replace_chars = {':', ',', '-', '_'}
+    
+    def normalize(s: str) -> str:
+        for char in replace_chars:
+            s = s.replace(char, ' ')
+        return s.lower()
+    
+    # Exact matches
+    exact_matches = [s for s in potential_targets if s == target]
+    if exact_matches:
+        return exact_matches
+    
+    # Normalized matches
+    norm_target = normalize(target)
+    norm_matches = [s for s in potential_targets if normalize(s) == norm_target]
+    if norm_matches:
+        return norm_matches
+    
+    # Substring matches
+    substring_matches = [s for s in potential_targets if norm_target in normalize(s)]
+    return substring_matches
 
 @tool("Returns a list of IDs of objects that are visible to the arm")
 def get_visible_objects() -> list[str]:
@@ -17,7 +43,11 @@ def get_visible_objects_detailed() -> list[str]:
 
 @tool("Makes the arm look at the largest object with the specified label, you must only give a label as returned by get_visible_objects(), will return false if the arm cannot perceive any objects with that label", label="The label of the object to look at")
 def set_look_at_target_label(label: str) -> bool:
-    return controller_getter().set_target_label(label)
+    currently_visible_objects: list[str] = controller_getter().get_visible_object_labels()
+    closest_matchess = find_closest_matches(label, currently_visible_objects)
+    print(f"Found tag matches: {closest_matchess}")
+    tag_target:str = closest_matchess[0] if len(closest_matchess) > 0 else label
+    return controller_getter().set_target_label(tag_target)
 
 @tool("Returns the label of the object that the arm is currently looking at")
 def get_look_at_target_label() -> str:
