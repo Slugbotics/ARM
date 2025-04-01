@@ -188,7 +188,7 @@ selected_app = None
 if config["use_app"]:
     # Kivy opens the window if this is imported, thus why it is here.
     from Modules.App.App import App
-    selected_object_identifier: ColorObjectIdentifier = ColorObjectIdentifier(lower_red, upper_red)
+    selected_object_identifier: ColorObjectIdentifier = ColorObjectIdentifier()
     selected_controler = FollowClawController(selected_HAL,selected_object_identifier)    
     selected_app = App(selected_controler, selected_HAL, selected_object_identifier)
 
