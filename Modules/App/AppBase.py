@@ -1,6 +1,4 @@
-from kivy.uix.tabbedpanel import TabbedPanel
-from kivy.app import App
-class AppBase(App):
+class AppBase():
     def start_app(self) -> bool: ...
 
     # return False
