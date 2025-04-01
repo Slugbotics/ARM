@@ -5,27 +5,7 @@ from typing import Callable
 import os.path
 import httpcore
 from Modules.Language.OLLAMA_installer import install_ollama, prompt_user
-
-def tool(description: str, **parameter_descriptions):
-    def tool_decorator(func: Callable):
-        func.tool_name = func.__name__
-        func.tool_description = description
-        func.tool_param_descriptions = parameter_descriptions
-        func.tool_param_types = {}
-        func.tool_required_params = []
-        func_sig = signature(func)
-        for param_name in func_sig.parameters.keys():
-            if param_name not in parameter_descriptions:
-                raise Exception(f"Missing parameter description for '{param_name}' on '{func.__name__}'")
-            param = func_sig.parameters[param_name]
-            if param.annotation == Parameter.empty:
-                func.tool_param_types[param_name] = "any"
-            else:
-                func.tool_param_types[param_name] = param.annotation.__name__
-            if param.default == Parameter.empty:
-                func.tool_required_params.append(param_name)
-        return func
-    return tool_decorator
+from Modules.Language.LanguageInterpreterBase import LanguageInterpreterBase
 
 DEFAULT_MODEL_FROM = "llama3.2:3b"
 
@@ -37,13 +17,14 @@ You don't need to mention the fact that you are using tool calling, this is impl
 You may run multiple consecutive tool calls if necessary.\"""
 """
 
-class LanguageInterpreter:
+class LanguageInterpreter(LanguageInterpreterBase):
     messages: list[str]
     tools: list[ollama._types.Tool]
     tool_callbacks: dict[str, Callable]
     tool_param_names: dict[str, list[str]]
 
     def __init__(self, model_file_path: str) -> None:
+        super().__init__(model_file_path)
         self.messages = []
         self.tools = []
         self.tool_callbacks = {}
