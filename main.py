@@ -15,16 +15,16 @@ if __name__ == "__main__":
     
     keep_running = True
     
-    armConfig = ArmConfig()
-    armRuntime = ArmRuntime()
+    armConfig = ArmConfig() # class that will load the config file and parse the args
+    armRuntime = ArmRuntime() # class that will hold all the modules and handle the commands
 
-    config = armConfig.load_config('config.json')
-    armConfig.parse_args(config)
-    armRuntime.apply_config(config)
+    config = armConfig.load_config('config.json') # load the config file
+    armConfig.parse_args(config) # parse the command line args and update the config file if needed
+    armRuntime.apply_config(config) # apply the config to the armRuntime class
     
-    print(armRuntime.to_string())
+    print(armRuntime.modules_to_string()) # print loaded modules to the console
 
-    # Remote API init
+    # Start arm, could mean connecting to the simulator or the real arm
     armRuntime.selected_HAL.start_arm()    
 
     print("Controler Startup")
@@ -32,30 +32,25 @@ if __name__ == "__main__":
     if armRuntime.selected_controller is not None:
         armRuntime.selected_controller.start()
     
-    # Connect to twitch
-    if config["use_twitch"]:
-        def twitch_input_handeler(input_str: str) -> None:
-            armRuntime.commands.user_input(input_str, Commands.Trust.SUS, armRuntime.selected_twitch)
-        
-        armRuntime.selected_twitch.connect_to_twitch(config["twitch_channel_name"], twitch_input_handeler)
+    armRuntime.start(config) # start the rest of the modules
 
     # start listening to speech
     if armRuntime.selected_stt is not None and not config["stt_push_to_talk"]:
         armRuntime.selected_stt.activate()
     
     if armRuntime.selected_tts is not None:
-        armRuntime.selected_tts.say("Arm startup.")
-        
-    armRuntime.hotkey_manager.start()
+        armRuntime.selected_tts.say("Arm startup.")   
         
     # ----------------- END SETUP -----------------
     
     # ----------------- MAIN PROGRAM LOOP -----------------
+    # will capture main thread and run the input loop in a separate thread
     if config["use_server"]:
         armRuntime.console_input.run_input_looping_async()
         print("Server Startup")
         armRuntime.selected_server.start_server()
 
+    # will capture main thread and run the input loop in a separate thread
     if config["use_app"]:
         try:
             armRuntime.console_input.run_input_looping_async()
@@ -63,6 +58,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
                 keep_running = False
         
+    # if we are not using the server or the app, we will run the input loop in the main thread
     if not config["use_server"] and not config["use_app"]:
         while keep_running:
             print("Arm is running, press 'q' or ctrl-c to quit")
@@ -77,28 +73,30 @@ if __name__ == "__main__":
     # ----------------- CLEAUP / SHUTDOWN -----------------
 
     print("Arm shutdown")
-    keep_running = False
-    armRuntime.hotkey_manager.stop()
-    if config["use_twitch"]:
-        armRuntime.selected_twitch.stop_twitch_chat()
+    keep_running = False    
+    
     # stop listening to speech
     if armRuntime.selected_stt is not None:
         armRuntime.selected_stt.stop()
+        
+    # stop the server
     if armRuntime.selected_server is not None:
         armRuntime.selected_server.stop_server()
+        
+    # stop the controller
     if armRuntime.selected_controller is not None:
         armRuntime.selected_controller.stop()
+        
+    # stop the HAL interface, could mean disconnecting from the simulator or the real arm
     armRuntime.selected_HAL.stop_arm()
     
-    armRuntime.console_input.cleanup()
+    armRuntime.stop(config) # stop the rest of the modules      
     
-    if armRuntime.selected_logger is not None:
-        armRuntime.selected_logger.stop()
-    
-    print("Arm shutdown complete")
-    
+    # speak a shutdown message
     if armRuntime.selected_tts is not None:
         armRuntime.selected_tts.say("Arm shutdown.")
+        
+    print("Arm shutdown complete")
     
     # Reopen Startup page
     if config["open_startup_page"]:

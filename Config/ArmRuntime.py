@@ -131,7 +131,27 @@ class ArmRuntime:
             else:
                 self.selected_twitch = TwitchChat(config["twitch_id"], config["twitch_secret"])
 
-    def to_string(self):
+    def start(self, config: Dict[str, Any]) -> None:
+        # Connect to twitch
+        if config["use_twitch"]:
+            def twitch_input_handeler(input_str: str) -> None:
+                self.commands.user_input(input_str, Commands.Trust.SUS, self.selected_twitch)
+            
+            self.selected_twitch.connect_to_twitch(config["twitch_channel_name"], twitch_input_handeler)
+            
+        self.hotkey_manager.start()
+        
+    def stop(self, config: Dict[str, Any]) -> None:
+        self.hotkey_manager.stop()
+        if config["use_twitch"]:
+            self.selected_twitch.stop_twitch_chat()
+            
+        self.console_input.cleanup()
+    
+        if self.selected_logger is not None:
+            self.selected_logger.stop()
+
+    def modules_to_string(self):
         return (
             f"RuntimeConfig(\n"
             f"  selected_HAL              : {self.selected_HAL.__class__.__name__},\n"
