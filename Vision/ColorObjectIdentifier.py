@@ -131,13 +131,13 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
         
         return "Unknown"
 
-    def separate_objects_by_color(self, hsv_image: cv2.typing.MatLike) -> dict:
+    def separate_objects_by_color(self, image_hsv: cv2.typing.MatLike) -> dict:
         contours_by_color = {}
 
         # Iterate over each color range, threshold the image, and find contours
         for color_name, (lower, upper) in COLOR_RANGES.items():
             # Create a mask for each color
-            mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
+            mask = cv2.inRange(image_hsv, np.array(lower), np.array(upper))
 
             # Clean up the mask using morphological operations
             mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
@@ -166,12 +166,14 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
             raise ValueError("Object width in pixels cannot be zero.")
         return (real_object_width * focal_length) / object_width_pixels
 
-    def extract_objects(self, hsv_image: cv2.typing.MatLike) -> List[VisionObject]:
+    def extract_objects(self, image_rgb: cv2.typing.MatLike) -> List[VisionObject]:
         
-        image_height: int = hsv_image.shape[0]
-        image_width: int = hsv_image.shape[1]
+        image_hsv = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV)
         
-        contours_by_color = self.separate_objects_by_color(hsv_image)
+        image_height: int = image_hsv.shape[0]
+        image_width: int = image_hsv.shape[1]
+        
+        contours_by_color = self.separate_objects_by_color(image_hsv)
 
         objects = []
         for color, (contours, mask) in contours_by_color.items():
@@ -181,7 +183,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 # print(f"Detected {color} object with contour area: {cv2.contourArea(contour)}")
                 
                 shape = self.identify_shape(contour)
-                color = self.identify_color(hsv_image, contour)
+                color = self.identify_color(image_hsv, contour)
                     
                 #find the largest contour and create its bounding box
                 (center_x, center_y), radius = cv2.minEnclosingCircle(contour)
@@ -193,7 +195,7 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 distance_from_camera_inches = self.calculate_distance_to_object(1, FIXED_OBJECT_WIDTH, w)
                     
                 object_name: str = f"{color} object"
-                new_object = VisionObject(object_name, image_height, image_width, x, y, w, h, radius, hsv_image, mask)
+                new_object = VisionObject(object_name, image_height, image_width, x, y, w, h, radius, image_rgb, mask)
                 new_object.set_metadata("radius", radius)
                 new_object.set_metadata("shape", shape)
                 new_object.set_metadata("color", color)
@@ -203,14 +205,14 @@ class ColorObjectIdentifier(VisualObjectIdentifier):
                 
                 objects.append(new_object)
                 
-        # visualized_objects_img = visualize_contours(hsv_image, objects)
+        # visualized_objects_img = visualize_contours(image_hsv, objects)
         # cv2.imshow('Region', cv2.flip(visualized_objects_img, 0))        
         # cv2.waitKey(1)
         
         return objects        
 
-    def process_frame(self, image: cv2.typing.MatLike) -> List[VisionObject]:
-        return self.extract_objects(image)
+    def process_frame(self, image_rgb: cv2.typing.MatLike) -> List[VisionObject]:
+        return self.extract_objects(image_rgb)
     
     def get_all_potential_labels(self) -> List[str]: 
         # return the keys from COLOR_RANGES with _object appended as potential labels

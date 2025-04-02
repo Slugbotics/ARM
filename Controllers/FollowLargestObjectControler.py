@@ -214,9 +214,9 @@ class FollowLargestObjectControler(Controller):
         if(self.object_found):
             await self.move_towards_object(target_object, frame)
 
-            flipped_source_frame_hsv = cv2.flip(target_object.source_frame_hsv, 0)
-            rgb_image = cv2.cvtColor(flipped_source_frame_hsv, cv2.COLOR_HSV2BGR)
-            cv2.imshow('Frame', rgb_image)
+            flipped_source_frame_rgb = cv2.flip(target_object.source_frame_rgb, 0)
+            bgr_image = cv2.cvtColor(flipped_source_frame_rgb, cv2.COLOR_RGB2BGR)
+            cv2.imshow('Frame', bgr_image)
             if target_object.mask is not None:
                 # flipped_mask = cv2.flip(target_object.mask, 0)
                 # cv2.imshow('Mask', flipped_mask)

@@ -39,18 +39,18 @@ class laptop_HAL(HAL_base):
     def get_joint(self, joint_index) -> float:
         return 0
 
-    def get_arm_cam_img_hsv(self) -> cv2.typing.MatLike:
+    def get_arm_cam_img_rgb(self) -> cv2.typing.MatLike:
 
         frame = None
         with self.lock:
             _,frame = self.capture.read()
 
         self.last_frame_width = frame.shape[1]
-        # Convert the image from RGB to HSV color space
+        # Convert the image from BGR to RGB color space
         flipped_image = cv2.flip(frame, 0)
-        hsv_image = cv2.cvtColor(flipped_image, cv2.COLOR_BGR2HSV)
+        rgb_image = cv2.cvtColor(flipped_image, cv2.COLOR_BGR2RGB)
 
-        return hsv_image
+        return rgb_image
     
     def get_focal_length_from_fov(frame_width, horizontal_fov_degrees=62.2):
         """

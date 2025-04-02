@@ -31,21 +31,21 @@ class YoloV4TinyObjectIdentifier(VisualObjectIdentifier):
             found_class_names = [e_g.strip() for e_g in objects_file.readlines()]
         return found_class_names
 
-    def process_frame(self, hsv_image: cv2.typing.MatLike) -> List[VisionObject]: 
+    def process_frame(self, image_rgb: cv2.typing.MatLike) -> List[VisionObject]: 
         """ Processes a frame and returns a list of visually identified objects in screen space. """
         
-        flipped_source_frame_hsv = cv2.flip(hsv_image, 0)
-        rgb_image = cv2.cvtColor(flipped_source_frame_hsv, cv2.COLOR_HSV2BGR)
+        flipped_source_frame_rgb = cv2.flip(image_rgb, 0)
+        bgr_image = cv2.cvtColor(flipped_source_frame_rgb, cv2.COLOR_RGB2BGR)
         
-        image_height: int = rgb_image.shape[0]
-        image_width: int = rgb_image.shape[1]
+        image_height: int = bgr_image.shape[0]
+        image_width: int = bgr_image.shape[1]
         
         image_with_boxes = None
         if self.draw_image:
-            image_with_boxes = rgb_image.copy()           
+            image_with_boxes_bgr = bgr_image.copy()           
         
         
-        classes, scores, boxes = self.model.detect(rgb_image,0.4,0.3)
+        classes, scores, boxes = self.model.detect(bgr_image,0.4,0.3)
         
         objects = []
         
@@ -57,10 +57,10 @@ class YoloV4TinyObjectIdentifier(VisualObjectIdentifier):
             largest_size = max(obj_width, obj_height)
             
             if self.draw_image:
-                cv2.rectangle(image_with_boxes, box,(0,0,255), 2)
-                cv2.putText(image_with_boxes,"{}:{}".format(self.class_names[classid],format(score,'.2f')), (box[0], box[1]-14), self.font, 0.6, (0,255,0), 3)
+                cv2.rectangle(image_with_boxes_bgr, box,(0,0,255), 2)
+                cv2.putText(image_with_boxes_bgr,"{}:{}".format(self.class_names[classid],format(score,'.2f')), (box[0], box[1]-14), self.font, 0.6, (0,255,0), 3)
                 
-            new_object = VisionObject(class_label, image_height, image_width, top_left_x, top_left_y, obj_width, obj_height, largest_size, hsv_image, image_with_boxes)
+            new_object = VisionObject(class_label, image_height, image_width, top_left_x, top_left_y, obj_width, obj_height, largest_size, image_rgb, image_with_boxes_bgr)
             new_object.set_metadata("score", score)
             new_object.set_metadata("classid", classid)
             new_object.set_metadata("box", box)      
