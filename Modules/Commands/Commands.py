@@ -52,3 +52,8 @@ class Commands:
             return False
         
         return True
+    
+    def user_input(self, input_str: str, trust: Trust, source: object) -> None:
+        is_command: bool = self.run_command(input_str, trust, source)
+        if not is_command:
+            self.run_command("/llm " + input_str, trust, source)
