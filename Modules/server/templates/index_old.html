@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Robotic Arm Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Control the Robotic Arm</h1>
+    <div id="mode-buttons">
+        <button onclick="changeMode('Manual')">Manual</button>
+        <button onclick="changeMode('Vision')">Vision</button>
+        <button onclick="changeMode('Voice')">Voice</button>
+    </div>
+    <p>Current Mode: <span id="current-mode">{{ current_mode }}</span></p>
+    <img src="http://{{ local_ip }}:5000/video_feed">
+    <div id="control-buttons">
+        <button onclick="sendCommand('move_up')">Move Up</button>
+        <button onclick="sendCommand('move_down')">Move Down</button>
+        <button onclick="sendCommand('move_left')">Move Left</button>
+        <button onclick="sendCommand('move_right')">Move Right</button>
+        <button onclick="sendCommand('grab')">Grab</button>
+        <button onclick="sendCommand('release')">Release</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize control buttons based on the current mode
+            updateControlButtons('{{ current_mode }}');
+        });
+
+        async function sendCommand(command) {
+            const response = await fetch('/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ command: command })
+            });
+            const result = await response.json();
+            document.getElementById('result').innerText = result.result;
+        }
+
+        function changeMode(mode) {
+            const ws = new WebSocket(`ws://${window.location.hostname}:5000/mode`);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ mode: mode }));
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.mode) {
+                    document.getElementById('current-mode').innerText = data.mode;
+                    updateControlButtons(data.mode);
+                }
+            };
+        }
+
+        function updateControlButtons(mode) {
+            const controlButtons = document.getElementById('control-buttons');
+            controlButtons.innerHTML = '';
+
+            if (mode === 'Manual') {
+                controlButtons.innerHTML = `
+                    <button onclick="sendCommand('move_up')">Move Up</button>
+                    | <button onclick="sendCommand('move_down')">Move Down</button>
+                    | <button onclick="sendCommand('move_left')">Move Left</button>
+                    | <button onclick="sendCommand('move_right')">Move Right</button>
+                    | <button onclick="sendCommand('grab')">Grab</button>
+                    | <button onclick="sendCommand('release')">Release</button>
+                `;
+            } else if (mode === 'Vision') {
+                controlButtons.innerHTML = `
+                    <button onclick="sendCommand('vison_tar_red')">Target Red</button>
+                    | <button onclick="sendCommand('vison_tar_green')">Target Green</button>
+                    | <button onclick="sendCommand('vison_tar_blue')">Target Blue</button>                    
+                `;
+            } else if (mode === 'Voice') {
+                controlButtons.innerHTML = `
+                `;
+            } else {
+                controlButtons.innerHTML = `
+                    <button onclick="sendCommand('move_up')">Move Up</button>
+                    <button onclick="sendCommand('move_down')">Move Down</button>
+                    <button onclick="sendCommand('move_left')">Move Left</button>
+                    <button onclick="sendCommand('move_right')">Move Right</button>
+                    <button onclick="sendCommand('grab')">Grab</button>
+                    <button onclick="sendCommand('release')">Release</button>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>

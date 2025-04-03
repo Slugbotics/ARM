@@ -1,115 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robotic Arm Control</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 50px;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            margin: 10px;
-        }
-
-        canvas {
-            display: block;
-            margin: 0 auto;
-            border: 1px solid #ddd;
-        }
-    </style>
-</head>
-
-<body>
-    <h1>Control the Robotic Arm</h1>
-    <div id="mode-buttons">
-        <button onclick="changeMode('Manual')">Manual</button>
-        <button onclick="changeMode('Vision')">Vision</button>
-        <button onclick="changeMode('Voice')">Voice</button>
-    </div>
-    <p>Current Mode: <span id="current-mode">{{ current_mode }}</span></p>
-    <img src="http://{{ local_ip }}:5000/video_feed">
-    <div id="control-buttons">
-        <button onclick="sendCommand('move_up')">Move Up</button>
-        <button onclick="sendCommand('move_down')">Move Down</button>
-        <button onclick="sendCommand('move_left')">Move Left</button>
-        <button onclick="sendCommand('move_right')">Move Right</button>
-        <button onclick="sendCommand('grab')">Grab</button>
-        <button onclick="sendCommand('release')">Release</button>
-    </div>
-    <div id="result"></div>
-
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Initialize control buttons based on the current mode
-            updateControlButtons('{{ current_mode }}');
-        });
+        async function getJoint(jointIndex) {
+            const response = await fetch(`/get_joint?joint_index=${jointIndex}`);
+            if (!response.ok) return null;
+            const data = await response.json();
+            return data.joint_angle;
+        }
 
-        async function sendCommand(command) {
-            const response = await fetch('/control', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ command: command })
+        async function setJoint(jointIndex, jointAngle) {
+            const response = await fetch("/set_joint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ joint_index: jointIndex, joint_angle: jointAngle })
             });
-            const result = await response.json();
-            document.getElementById('result').innerText = result.result;
+            updateStatus(response.ok ? "Joint set successfully" : "Failed to set joint");
         }
 
-        function changeMode(mode) {
-            const ws = new WebSocket(`ws://${window.location.hostname}:5000/mode`);
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ mode: mode }));
-            };
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.mode) {
-                    document.getElementById('current-mode').innerText = data.mode;
-                    updateControlButtons(data.mode);
-                }
-            };
+        async function toggleGripper(state) {
+            const response = await fetch(state ? "/gripper_open" : "/gripper_close", { method: "POST" });
+            updateStatus(response.ok ? (state ? "Gripper opened" : "Gripper closed") : "Failed to toggle gripper");
         }
 
-        function updateControlButtons(mode) {
-            const controlButtons = document.getElementById('control-buttons');
-            controlButtons.innerHTML = '';
-
-            if (mode === 'Manual') {
-                controlButtons.innerHTML = `
-                    <button onclick="sendCommand('move_up')">Move Up</button>
-                    | <button onclick="sendCommand('move_down')">Move Down</button>
-                    | <button onclick="sendCommand('move_left')">Move Left</button>
-                    | <button onclick="sendCommand('move_right')">Move Right</button>
-                    | <button onclick="sendCommand('grab')">Grab</button>
-                    | <button onclick="sendCommand('release')">Release</button>
-                `;
-            } else if (mode === 'Vision') {
-                controlButtons.innerHTML = `
-                    <button onclick="sendCommand('vison_tar_red')">Target Red</button>
-                    | <button onclick="sendCommand('vison_tar_green')">Target Green</button>
-                    | <button onclick="sendCommand('vison_tar_blue')">Target Blue</button>                    
-                `;
-            } else if (mode === 'Voice') {
-                controlButtons.innerHTML = `
-                `;
-            } else {
-                controlButtons.innerHTML = `
-                    <button onclick="sendCommand('move_up')">Move Up</button>
-                    <button onclick="sendCommand('move_down')">Move Down</button>
-                    <button onclick="sendCommand('move_left')">Move Left</button>
-                    <button onclick="sendCommand('move_right')">Move Right</button>
-                    <button onclick="sendCommand('grab')">Grab</button>
-                    <button onclick="sendCommand('release')">Release</button>
-                `;
+        async function moveArm(direction) {
+            let moveAmount = parseInt(document.getElementById("moveSlider").value);
+            let joint0, joint1, joint2;
+            switch (direction) {
+                case 'left':
+                    joint0 = await getJoint(0);
+                    if (joint0 !== null) await setJoint(0, joint0 - moveAmount);
+                    break;
+                case 'right':
+                    joint0 = await getJoint(0);
+                    if (joint0 !== null) await setJoint(0, joint0 + moveAmount);
+                    break;
+                case 'up':
+                    joint1 = await getJoint(1);
+                    joint2 = await getJoint(2);
+                    if (joint1 !== null && joint2 !== null) {
+                        await setJoint(1, joint1 + moveAmount);
+                        await setJoint(2, joint2 + moveAmount);
+                    }
+                    break;
+                case 'down':
+                    joint1 = await getJoint(1);
+                    joint2 = await getJoint(2);
+                    if (joint1 !== null && joint2 !== null) {
+                        await setJoint(1, joint1 - moveAmount);
+                        await setJoint(2, joint2 - moveAmount);
+                    }
+                    break;
             }
+            updateStatus(`Moved ${direction} by ${moveAmount}`);
+        }
+
+        function updateStatus(message) {
+            document.getElementById("statusLabel").innerText = message;
         }
     </script>
-</body>
+</head>
+<body>
+    <h1 style="text-align: center;">Robotic Arm Control</h1>
+    
+    <div style="display: flex; justify-content: center;">
+        <img src="/get_arm_cam_stream" width="640" height="480" />
+    </div>
+    
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
+        <input type="range" id="moveSlider" min="1" max="20" value="10" style="width: 90%;">
+        <p>Move Amount: <span id="sliderValue">10</span></p>
+    </div>
 
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button style="font-size: 20px; padding: 15px; width: 120px;" onclick="moveArm('up')">⬆ Up</button>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
+            <button style="font-size: 20px; padding: 15px; width: 120px;" onclick="moveArm('left')">⬅ Left</button>
+            <button style="font-size: 20px; padding: 15px; width: 120px;" onclick="moveArm('right')">➡ Right</button>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
+            <button style="font-size: 20px; padding: 15px; width: 120px;" onclick="moveArm('down')">⬇ Down</button>
+        </div>
+    </div>
+    
+    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+        <button style="font-size: 20px; padding: 15px; width: 150px;" onclick="toggleGripper(true)">Open Gripper</button>
+        <button style="font-size: 20px; padding: 15px; width: 150px;" onclick="toggleGripper(false)">Close Gripper</button>
+    </div>
+    
+    <div style="text-align: center; margin-top: 10px;">
+        <h2>Status</h2>
+        <p id="statusLabel">Waiting for command...</p>
+    </div>
+    
+    <script>
+        document.getElementById("moveSlider").addEventListener("input", function() {
+            document.getElementById("sliderValue").innerText = this.value;
+        });
+    </script>
+</body>
 </html>
