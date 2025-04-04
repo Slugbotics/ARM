@@ -21,12 +21,13 @@ class HTTPServer(ServerBase):
         joint_index: int
         joint_angle: float
 
-    def __init__(self, runtime: ArmRuntime):
+    def __init__(self, runtime: ArmRuntime, host_port: int):
         super().__init__()
         self.controller: Controller = runtime.selected_controller
         self.selected_HAL: HAL_base = runtime.selected_HAL
         self.objectIdentifier: ColorObjectIdentifier = runtime.selected_object_identifier
         self.runtime: ArmRuntime = runtime
+        self.host_port = host_port
         self.server_thread = None
         self.keep_running = False
         
@@ -122,13 +123,13 @@ class HTTPServer(ServerBase):
         self.keep_running = True
         
         host: str = "127.0.0.1"
-        port: int = 8000
+        port: int = self.host_port
         
         # the logger on this needs to have access to the normal stdout, so we need to disable our custom one if we are using it
         if self.runtime.selected_logger is not None:
             self.runtime.selected_logger.stop()
         
-        config = Config(app=self.app, host=host, port=port, log_level="info")
+        config = Config(app=self.app, host=host, port=port, log_level="critical") # if you want to see http requests, log_level="info"
         self.server = Server(config)
         
         # and reenable it
