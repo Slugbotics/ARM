@@ -25,6 +25,8 @@ class ConsoleInput(TextIn, TextOut):
             except (KeyboardInterrupt, EOFError):
                 self.looping = False
                 print("\nExiting input loop.")
+                raise KeyboardInterrupt
+
 
     def run_input_looping_async(self):
         self.loop_thread = threading.Thread(target=self.run_input_looping)
