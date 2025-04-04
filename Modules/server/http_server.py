@@ -1,17 +1,19 @@
+import threading
+from typing import Dict
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-import uvicorn
+from uvicorn import Config, Server
 import cv2
 import base64
 import numpy as np
-from typing import Dict
 
 from Controllers.Controller import Controller
 from HALs.HAL_base import HAL_base
 from Modules.server.ServerBase import ServerBase
 from Vision.ColorObjectIdentifier import ColorObjectIdentifier
+from Config.ArmRuntime import ArmRuntime
 
 class HTTPServer(ServerBase):
 
@@ -19,11 +21,13 @@ class HTTPServer(ServerBase):
         joint_index: int
         joint_angle: float
 
-    def __init__(self, controller: Controller, selected_HAL: HAL_base, objectIdentifier: ColorObjectIdentifier = None):
+    def __init__(self, runtime: ArmRuntime):
         super().__init__()
-        self.controller: Controller = controller
-        self.selected_HAL: HAL_base = selected_HAL
-        self.objectIdentifier: ColorObjectIdentifier = objectIdentifier
+        self.controller: Controller = runtime.selected_controller
+        self.selected_HAL: HAL_base = runtime.selected_HAL
+        self.objectIdentifier: ColorObjectIdentifier = runtime.selected_object_identifier
+        self.runtime: ArmRuntime = runtime
+        self.server_thread = None
         self.keep_running = False
         
         self.app = FastAPI()
@@ -119,12 +123,31 @@ class HTTPServer(ServerBase):
         
         host: str = "127.0.0.1"
         port: int = 8000
+        
+        # the logger on this needs to have access to the normal stdout, so we need to disable our custom one if we are using it
+        if self.runtime.selected_logger is not None:
+            self.runtime.selected_logger.stop()
+        
+        config = Config(app=self.app, host=host, port=port, log_level="info")
+        self.server = Server(config)
+        
+        # and reenable it
+        if self.runtime.selected_logger is not None:
+            self.runtime.selected_logger.start()
+
+        # Run the server in a separate thread
+        self.server_thread = threading.Thread(target=self.server.run, daemon=True)
+        self.server_thread.start()
         print("connect to: \"http://" + host + ":" + str(port) + "/\" to see the image feed")
-        uvicorn.run(self.app, host=host, port=port, log_config=None)
         return True
 
     def stop_server(self) -> bool:
         #self.app.shutdown()
+        did_shutdown = self.keep_running
         self.keep_running = False
-        return True
+        if self.server:
+            self.server.should_exit = True
+        if self.server_thread:
+            self.server_thread.join()
+        return did_shutdown
         

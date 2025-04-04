@@ -93,7 +93,7 @@ class ArmRuntime:
         # Server setup
         if config["use_server"]:
             from Modules.server.http_server import HTTPServer
-            self.selected_server: ServerBase = HTTPServer(self.selected_controller, self.selected_HAL, self.selected_object_identifier)
+            self.selected_server: ServerBase = HTTPServer(self)
             
         # speech to text setup
         if config["use_stt"]:

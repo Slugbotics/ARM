@@ -44,7 +44,6 @@ if __name__ == "__main__":
     # ----------------- MAIN PROGRAM LOOP -----------------
     # will capture main thread and run the input loop in a separate thread
     if config["use_server"]:
-        armRuntime.console_input.run_input_looping_async()
         print("Server Startup")
         armRuntime.selected_server.start_server()
 
@@ -57,7 +56,7 @@ if __name__ == "__main__":
                 keep_running = False
         
     # if we are not using the server or the app, we will run the input loop in the main thread
-    if not config["use_server"] and not config["use_app"]:
+    if not config["use_app"]:
         while keep_running:
             print("Arm is running, press 'q' or ctrl-c to quit")
             try:
