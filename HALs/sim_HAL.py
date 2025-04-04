@@ -57,6 +57,9 @@ class sim_HAL(HAL_base):
 
                 # start sim
                 self.sim.startSimulation()
+                return True
+        else:
+            return False
         print("Finished connecting to CoppeliaSim!")
 
     def stop_arm(self) -> bool:
@@ -64,6 +67,8 @@ class sim_HAL(HAL_base):
         with self.lock:
             self.sim.stopSimulation()
             print("--------- Ended ARM_SIM ---------")
+            
+        return True
 
     def joint_count(self) -> int:
         return self.motorCount
@@ -80,6 +85,8 @@ class sim_HAL(HAL_base):
         if(joint_index < self.motorCount):
             with self.lock:
                 self.sim.setJointTargetPosition(self.mtr[int(joint_index)], float(joint_angle) * D_TO_R)
+            return True
+        return False
 
     def get_joint(self, joint_index) -> float:
         with self.lock:
@@ -92,11 +99,13 @@ class sim_HAL(HAL_base):
         image_data = unpack_uint8_table(image)
         image_array_rgb = np.array(image_data, dtype=np.uint8)
         image_array_rgb = np.reshape(image_array_rgb, (resolution[1], resolution[0], 3))
+        image_array_rgb_vertically_flipped = cv2.flip(image_array_rgb, 0)  # flip image verticly
+        # flip image verticly
 
         # Convert the image from RGB to HSV color space
         # hsv_image = cv2.cvtColor(image_array_rgb, cv2.COLOR_RGB2HSV)
 
-        return image_array_rgb
+        return image_array_rgb_vertically_flipped
     
     def calculate_focal_length(self, sim, sensor_handle):
         """
