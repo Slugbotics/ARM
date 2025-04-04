@@ -20,10 +20,10 @@ class HTTPServer(ServerBase):
         joint_angle: float
 
     def __init__(self, controller: Controller, selected_HAL: HAL_base, objectIdentifier: ColorObjectIdentifier = None):
+        super().__init__()
         self.controller: Controller = controller
         self.selected_HAL: HAL_base = selected_HAL
         self.objectIdentifier: ColorObjectIdentifier = objectIdentifier
-        
         self.keep_running = False
         
         self.app = FastAPI()
@@ -40,6 +40,7 @@ class HTTPServer(ServerBase):
         self.app.get("/get_camera_focal_length")(self.get_camera_focal_length)
         self.app.post("/gripper_open")(self.gripper_open)
         self.app.post("/gripper_close")(self.gripper_close)
+        self.app.get("/status_string")(self.get_status_string)
     
     def home_page(self, request: Request):
         return self.templates.TemplateResponse("index.html", {"request": request})
@@ -103,6 +104,14 @@ class HTTPServer(ServerBase):
     
     def gripper_close(self):
         return {"success": self.selected_HAL.gripper_close()}
+    
+    def get_status_string(self):
+        status_string = "status"
+        if self.controller is not None:
+            visible_objects = self.controller.get_visible_object_labels()            
+            status_string = "Controler: " + self.controller.__class__.__name__ + " can see: " + str(visible_objects) + "\n"
+            status_string += "Object Identifier: " + self.objectIdentifier.__class__.__name__ + "\n"
+        return {"status_string": status_string}
     
     def start_server(self) -> bool:
         

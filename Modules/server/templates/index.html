@@ -18,13 +18,24 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ joint_index: jointIndex, joint_angle: jointAngle })
             });
-            updateStatus(response.ok ? "Joint set successfully" : "Failed to set joint");
+            updateResponseString(response.ok ? "Joint set successfully" : "Failed to set joint");
         }
 
         async function toggleGripper(state) {
             const response = await fetch(state ? "/gripper_open" : "/gripper_close", { method: "POST" });
-            updateStatus(response.ok ? (state ? "Gripper opened" : "Gripper closed") : "Failed to toggle gripper");
+            if (!response.ok) {
+                updateResponseString("Failed to reach server");
+                return;
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                updateResponseString(state ? "Gripper opened successfully" : "Gripper closed successfully");
+            } else {
+                updateResponseString(state ? "Failed to open gripper" : "Failed to close gripper");
+            }
         }
+
 
         async function moveArm(direction) {
             let moveAmount = parseInt(document.getElementById("moveSlider").value);
@@ -42,25 +53,58 @@
                     joint1 = await getJoint(1);
                     joint2 = await getJoint(2);
                     if (joint1 !== null && joint2 !== null) {
-                        await setJoint(1, joint1 + moveAmount);
-                        await setJoint(2, joint2 + moveAmount);
+                        await setJoint(1, joint1 + (moveAmount / 2));
+                        await setJoint(2, joint2 + (moveAmount / 2));
                     }
                     break;
                 case 'down':
                     joint1 = await getJoint(1);
                     joint2 = await getJoint(2);
                     if (joint1 !== null && joint2 !== null) {
-                        await setJoint(1, joint1 - moveAmount);
-                        await setJoint(2, joint2 - moveAmount);
+                        await setJoint(1, joint1 - (moveAmount / 2));
+                        await setJoint(2, joint2 - (moveAmount / 2));
                     }
                     break;
             }
-            updateStatus(`Moved ${direction} by ${moveAmount}`);
+            updateResponseString(`Moved ${direction} by ${moveAmount}`);
+        }
+
+        function updateResponseString(message) {
+            document.getElementById("responseLabel").innerText = message;
         }
 
         function updateStatus(message) {
             document.getElementById("statusLabel").innerText = message;
         }
+
+        async function startup() {
+            const jointCountResponse = await fetch("/joint_count");
+            if (!jointCountResponse.ok) {
+                console.error("Failed to fetch joint count");
+                return;
+            }
+            const jointCountData = await jointCountResponse.json();
+            const jointCount = jointCountData.joint_count;
+            console.log(`Total Joints: ${jointCount}`);
+
+            for (let i = 0; i < jointCount; i++) {
+                let jointAngle = await getJoint(i);
+                console.log(`Joint ${i}: ${jointAngle !== null ? jointAngle : "Error fetching joint angle"}`);
+            }
+            const statusResponse = await fetch("/status_string");
+            if (!statusResponse.ok) {
+                console.error("Failed to fetch status string");
+                return;
+            }
+            const statusData = await statusResponse.json();
+            console.log(`Status statusData: ${statusData}`);
+            const statusString = statusData.status_string;
+            console.log(`Status String: ${statusString}`);
+            updateStatus(statusString);
+
+        }
+
+        window.onload = startup;
     </script>
 </head>
 <body>
@@ -94,8 +138,13 @@
     </div>
     
     <div style="text-align: center; margin-top: 10px;">
+        <h2>Response</h2>
+        <p id="responseLabel">Waiting for command...</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 10px;">
         <h2>Status</h2>
-        <p id="statusLabel">Waiting for command...</p>
+        <p id="statusLabel">Waiting for arm status...</p>
     </div>
     
     <script>
