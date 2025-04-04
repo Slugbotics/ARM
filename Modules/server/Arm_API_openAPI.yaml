@@ -1,0 +1,157 @@
+openapi: 3.0.0
+info:
+  title: Robotic Arm API
+  version: 1.0.0
+  description: HTTP API to control and monitor a robotic arm using FastAPI.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /:
+    get:
+      summary: Home Page
+      responses:
+        '200':
+          description: Returns the home page HTML.
+
+  /set_joint:
+    post:
+      summary: Set joint angle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                joint_index:
+                  type: integer
+                joint_angle:
+                  type: number
+              required:
+                - joint_index
+                - joint_angle
+      responses:
+        '200':
+          description: Successfully set the joint angle.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /get_joint:
+    get:
+      summary: Get joint angle
+      parameters:
+        - name: joint_index
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Current joint angle.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  joint_angle:
+                    type: number
+
+  /joint_count:
+    get:
+      summary: Get joint count
+      responses:
+        '200':
+          description: Number of joints in the HAL.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  joint_count:
+                    type: integer
+
+  /get_arm_cam_img_rgb:
+    get:
+      summary: Get single camera image
+      responses:
+        '200':
+          description: Base64 JPEG image.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image:
+                    type: string
+
+  /get_arm_cam_stream:
+    get:
+      summary: MJPEG stream from camera
+      responses:
+        '200':
+          description: MJPEG video stream.
+          content:
+            multipart/x-mixed-replace:
+              schema:
+                type: string
+
+  /get_camera_focal_length:
+    get:
+      summary: Get camera focal length
+      responses:
+        '200':
+          description: Camera focal length.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  focal_length:
+                    type: number
+
+  /gripper_open:
+    post:
+      summary: Open the gripper
+      responses:
+        '200':
+          description: Gripper opened successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /gripper_close:
+    post:
+      summary: Close the gripper
+      responses:
+        '200':
+          description: Gripper closed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /status_string:
+    get:
+      summary: Get robot status string
+      responses:
+        '200':
+          description: Human-readable robot status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_string:
+                    type: string
