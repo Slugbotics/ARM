@@ -10,8 +10,7 @@ class ArmConfig:
     # if you add or rename parameters, please increment config_version for everything to work properly. 
     CONFIG_DEFAULT_DICT = {
         "use_simulator" : True,
-        "use_physical" : False,
-        "sim_host": "localhost",
+        "use_physical" : False,        
         "use_app" : False,
         "use_server" : True,
         "use_twitch" : False,
@@ -21,11 +20,13 @@ class ArmConfig:
         "open_startup_page" : False,
         "write_logs" : True,
         "use_tts" : True,
-        "twitch_id" : "NONE",
-        "twitch_secret" : "NONE",
-        "twitch_channel_name" : "ucscarm",
         "use_language_model": True,
-        "language_model_file": "Arm.Modelfile"
+        "language_model_file" : "Arm.Modelfile",
+        "twitch_id": "NONE",
+        "twitch_secret" : "NONE",
+        "twitch_channel_name" : "ucscarm",   
+        "sim_host": "localhost",
+        "server_host_port": "8000",
     }
     
     def load_config(self, config_file_path: str = 'config.json') -> Dict[str, Any]:

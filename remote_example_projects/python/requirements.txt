@@ -1,0 +1,4 @@
+PyQt6>=6.6
+requests>=2.31
+opencv-python>=4.8
+numpy>=1.24
