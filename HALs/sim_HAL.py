@@ -99,9 +99,7 @@ class sim_HAL(HAL_base):
         image_data = unpack_uint8_table(image)
         image_array_rgb = np.array(image_data, dtype=np.uint8)
         image_array_rgb = np.reshape(image_array_rgb, (resolution[1], resolution[0], 3))
-        image_array_rgb_vertically_flipped = cv2.flip(image_array_rgb, 0)  # flip image verticly
-        # flip image verticly
-
+        image_array_rgb_vertically_flipped = cv2.flip(image_array_rgb, 0)  # flip image vertically
         # Convert the image from RGB to HSV color space
         # hsv_image = cv2.cvtColor(image_array_rgb, cv2.COLOR_RGB2HSV)
 
