@@ -66,12 +66,28 @@ class ArmRuntime:
             self.commands.add_command("llm", lambda args: self.selected_voice.write_line(self.selected_language_interpreter.run(args)),
                                 "Runs the provided input on the language model")
         # HAL stuff
-        if config["use_simulator"]:
+        if config["use_simulator_hal"]:
             from HALs.sim_HAL import sim_HAL
             self.selected_HAL = sim_HAL(config["sim_host"])
-        elif config["use_physical"]:
+        elif config["use_physical_hal"]:
             from HALs.physical_HAL import physical_HAL
             self.selected_HAL = physical_HAL()
+        elif config["use_remote_hal"]:
+            if "remote_hal_ip" not in config or not config["remote_hal_ip"]:
+                print("ERROR: 'remote_hal_ip' is missing or invalid in the configuration.")
+            elif "remote_hal_port" not in config or not config["remote_hal_port"]:
+                print("ERROR: 'remote_hal_port' is missing or invalid in the configuration.")
+            else:
+                try:
+                    remote_ip = config["remote_hal_ip"]
+                    remote_port = int(config["remote_hal_port"])
+                    from HALs.remote_HAL import RemoteHAL
+                    self.selected_HAL = RemoteHAL(remote_ip, remote_port)
+                    print(f"Remote HAL initialized with IP: {remote_ip}, Port: {remote_port}")
+                except ValueError:
+                    print(f"ERROR: 'remote_hal_port' must be a valid integer. Provided value: {config['remote_hal_port']}")
+        else:
+            print("SERIOUS ERROR - No HAL selected. Please select a HAL to use.")        
             
         # vision stuff
         from Vision.ColorObjectIdentifier import ColorObjectIdentifier
@@ -92,8 +108,14 @@ class ArmRuntime:
             
         # Server setup
         if config["use_server"]:
-            from Modules.server.server import Server
-            self.selected_server: ServerBase = Server(self.selected_controller, self.selected_HAL, self.selected_object_identifier)
+            from Modules.server.http_server import HTTPServer
+            new_host_port: int = 8000
+            if "server_host_port" in config:
+                try:
+                    new_host_port: int = int(config["server_host_port"])
+                except ValueError:
+                    print(f"Invalid server host port value: {config['server_host_port']}. Using default port 8000.")
+            self.selected_server: ServerBase = HTTPServer(self, new_host_port)
             
         # speech to text setup
         if config["use_stt"]:
