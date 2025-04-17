@@ -92,8 +92,14 @@ class ArmRuntime:
             
         # Server setup
         if config["use_server"]:
-            from Modules.server.server import Server
-            self.selected_server: ServerBase = Server(self.selected_controller, self.selected_HAL, self.selected_object_identifier)
+            from Modules.server.http_server import HTTPServer
+            new_host_port: int = 8000
+            if "server_host_port" in config:
+                try:
+                    new_host_port: int = int(config["server_host_port"])
+                except ValueError:
+                    print(f"Invalid server host port value: {config['server_host_port']}. Using default port 8000.")
+            self.selected_server: ServerBase = HTTPServer(self, new_host_port)
             
         # speech to text setup
         if config["use_stt"]:
