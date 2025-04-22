@@ -35,6 +35,7 @@ class sim_HAL(HAL_base):
         super().__init__()
         self.lock = threading.Lock()
         self.host = host
+        self.gripper_closed = False        
 
     def start_arm(self) -> bool:
 
@@ -52,9 +53,53 @@ class sim_HAL(HAL_base):
                 self.mtr[2] = self.sim.getObjectHandle('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute')
                 self.mtr[3] = self.sim.getObjectHandle('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute')
 
+                for i in range(self.motorCount):
+                    print("Motor " + str(i) + ": " + str(self.mtr[i]))            
+
                 # camera
                 self.sensorHandle = self.sim.getObjectHandle('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute/Vision_sensor')
 
+
+                # gripper rotator
+                self.gripper_rotatorHandle = None # ensure the field exists
+                try:                    
+                    self.gripper_rotatorHandle = self.sim.getObject('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute')
+                except Exception as e:
+                    print("Gripper rotator joint not found: " + str(e))
+
+
+                # gripper claw joint
+                self.gripper_claw_jointHandle = None # ensure the field exists
+                try:                    
+                    self.gripper_claw_jointHandle = self.sim.getObject('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute/Crabclaw_0/Revolute_joint')
+                except Exception as e:
+                    print("Gripper claw joint not found: " + str(e))
+                    
+                
+                 # gripper basic joint
+                self.gripper_basic_jointHandle = None # ensure the field exists
+                try:                    
+                    self.gripper_basic_jointHandle = self.sim.getObject('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute/CrabClaw/Gripper')
+                except Exception as e:
+                    print("Gripper basic joint not found: " + str(e))
+                    
+                    
+                # camera
+                self.sensorHandle_alternate = None # ensure the field exists
+                try:
+                    self.sensorHandle_alternate = self.sim.getObject('/Base/BaseRevolute/LowerSmallerLimb/Limb1Revolute/BigLimb/Limb2Revolute/UpperSmallLimb/Limb4Revolute/Crabclaw_0/Revolute_joint/Vision_sesnor')
+                except Exception as e:
+                    print("Camera alternate not found: " + str(e))
+                    
+
+                print("Sensor: " + str(self.sensorHandle))
+                print("sensorHandle_alternate: " + str(self.sensorHandle_alternate))
+                print("gripper_claw_jointHandle: " + str(self.gripper_claw_jointHandle))
+                print("gripper_basic_jointHandle: " + str(self.gripper_basic_jointHandle))
+                # get camera resolution
+                resolution = self.sim.getVisionSensorResolution(self.sensorHandle)
+                print("Resolution: " + str(resolution))
+                
                 # start sim
                 self.sim.startSimulation()
                 return True
@@ -140,7 +185,37 @@ class sim_HAL(HAL_base):
             return self.calculate_focal_length(self.sim, self.sensorHandle)
     
     def gripper_open(self) -> bool:
+        if not self.gripper_closed:
+            return False
+        self.gripper_closed = False        
+        
+        if self.gripper_basic_jointHandle is not None:
+            with self.lock:
+                self.sim.setJointTargetPosition(self.gripper_basic_jointHandle, 0.0)
+            return True
+        
+        if self.gripper_claw_jointHandle is not None:
+            with self.lock:
+                self.sim.setJointTargetPosition(self.gripper_claw_jointHandle, 0.0)
+            return True
+        
         return False
     
     def gripper_close(self) -> bool:
+        if self.gripper_closed:
+            return False
+        self.gripper_closed = True
+        
+        if self.gripper_basic_jointHandle is not None:
+            with self.lock:
+                self.sim.setJointTargetPosition(self.gripper_basic_jointHandle, -0.300)
+            return True
+        
+        if self.gripper_claw_jointHandle is not None:
+            with self.lock:
+                self.sim.setJointTargetPosition(self.gripper_claw_jointHandle, -0.300)
+            return True
+        
         return False
+        
+        
