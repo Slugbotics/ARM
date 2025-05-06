@@ -12,7 +12,6 @@ class ArmConfig:
         "use_simulator_hal" : True,
         "use_physical_hal" : False,        
         "use_remote_hal" : False,
-        "use_app" : False,
         "use_server" : True,
         "use_twitch" : False,
         "use_stt" : True,
