@@ -15,16 +15,46 @@ from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Modules.Base.ImageProducer import ImageProducer
 from Controllers.Controller import Controller
 
+# Define the DH parameters for the arm
+# a1: The vertical distance from the base of the robotic arm to the first joint (shoulder joint).
+#     This represents the height of the base. Modify this value if the base height of the arm changes.
+a1 = 13.1
+
+# a2: The horizontal offset or distance between the first joint (shoulder) and the second joint (elbow).
+#     This represents the length of the link connecting these joints. Adjust this if the arm's shoulder-to-elbow link changes.
+a2 = 3.25
+
+# a3: The length of the upper arm, which is the distance between the shoulder joint and the elbow joint.
+#     Modify this value if the upper arm's length changes.
+a3 = 11.4
+
+# a4: The horizontal offset or distance between the elbow joint and the wrist joint.
+#     This represents the length of the link connecting these joints. Adjust this if the elbow-to-wrist link changes.
+a4 = 3.25
+
+# a5: The length of the forearm, which is the distance between the elbow joint and the wrist joint.
+#     Modify this value if the forearm's length changes.
+a5 = 5.8
+
+# a6: The distance from the wrist joint to the end-effector (e.g., gripper or tool).
+#     This represents the final segment of the robotic arm. Adjust this if the wrist-to-end-effector length changes.
+a6 = 11.11
+
+# How to Modify These Parameters:
+# Measure the Physical Dimensions:
+
+# If the robotic arm's design changes (e.g., different link lengths or offsets), measure the new dimensions and update the corresponding parameter.
+# Ensure Consistency:
+
+# When modifying these parameters, ensure that the values match the actual physical dimensions of the robotic arm. Incorrect values will lead to inaccurate kinematics calculations.
+# Test After Modification:
+
+# After updating the parameters, test the arm's forward and inverse kinematics to verify that the changes are correctly reflected in the arm's movements.
+
 def coordinate_input(x, y, z,hal,vision=False):
     global mtr
     global sim
     try:
-        a1 = 13.1
-        a2 = 3.25
-        a3 = 11.4
-        a4 = 3.25
-        a5 = 5.8
-        a6 = 11.11
         robot_arm1 = Three_Degree_Arm(a1, a2, a3, a4, a5, a6)
         # caluclate angles
         angles = robot_arm1.calculate_angles(sym.Matrix([x, y, z, 1]))
