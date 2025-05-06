@@ -8,8 +8,35 @@ def install_ollama():
         # Use the winget command to install Ollama on Windows
         command = "winget install Ollama.Ollama"
     elif os_type == 'Darwin':  # macOS
-        # Use the brew command to install Ollama on macOS
-        command = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\" && brew install ollama"
+        # Check if Homebrew is installed
+        try:
+            subprocess.run(["brew", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print("Homebrew is already installed.")
+        except subprocess.CalledProcessError:
+            print("Homebrew is not installed. Installing Homebrew...")
+            try:
+                subprocess.run(
+                    ["/bin/bash", "-c", "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"],
+                    check=True
+                )
+                print("Homebrew installation successful.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to install Homebrew: {e}")
+                return
+        
+        # Install Ollama using Homebrew
+        try:
+            subprocess.run(["brew", "install", "ollama"], check=True)
+            print("Ollama installation successful.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install Ollama: {e}")
+            
+        # Start the Ollama service
+        try:
+            subprocess.run(["ollama", "serve"], check=True)
+            print("Ollama service is now running.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to start the Ollama service: {e}")
     elif os_type == 'Linux':
         # Use the appropriate package manager for Linux
         distro = platform.linux_distribution()[0].lower()
