@@ -118,12 +118,17 @@ class HTTPServer(ServerBase):
             status_string += "Object Identifier: " + self.objectIdentifier.__class__.__name__ + "\n"
         return {"status_string": status_string}
     
-    def start_server(self) -> bool:
+    def start_server(self, print_local_ip_address: bool = True) -> bool:
         
         self.keep_running = True
         
         host: str = "127.0.0.1"
         port: int = self.host_port
+        
+        if print_local_ip_address:
+            import socket
+            host = socket.gethostbyname(socket.gethostname())
+            print("local ip address: \"" + host + "\"")
         
         # the logger on this needs to have access to the normal stdout, so we need to disable our custom one if we are using it
         if self.runtime.selected_logger is not None:
