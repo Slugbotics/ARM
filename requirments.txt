@@ -57,3 +57,6 @@ pyaudio
 pyttsx3
 pynput
 httpcore
+ollama
+fastapi
+uvicorn
