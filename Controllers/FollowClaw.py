@@ -258,44 +258,7 @@ class FollowClawController(Controller):
         selected_HAL.set_joint_max(0, 270) # set_base_max_degree(270)
         selected_HAL.set_joint_max(2, 75) # set_joint_2_max(75)
         
-    def set_target_label(self, label: str) -> bool:
-        """This controller will only target objects with the specified label."""
-        if self.is_label_in_universe(label):
-            self.target_label = label
-            return True
-        else:
-            print(f"Label {label} is not in the universe of {self.__name__}.")
-            print(f"Please select a lable that is in universe: {self.vision.get_all_potential_labels()}")
-            return False
-        
-    def get_target_label(self) -> str:
-        """Returns the label of the object that the controller is currently targeting."""
-        return self.target_label
-        
-    def is_label_in_universe(self, label: str) -> bool:
-        """Returns True if the label is something this controler can see, else false."""
-        all_labels = self.vision.get_all_potential_labels()
-        return (label in all_labels)
     
-    def get_visible_object_labels(self) -> list[str]:
-        """Returns a list of identifiers of objects that are visible to the arm"""
-        with self.last_frame_objects_lock:
-            if self.last_frame_objects is None:
-                return []
-            return [obj.label for obj in self.last_frame_objects]
-        
-    def get_visible_object_labels_detailed(self) -> list[str]:
-        """Returns a list of objects that are visible to the arm, including metadata"""
-        with self.last_frame_objects_lock:
-            if self.last_frame_objects is None:
-                return []
-            # return a series of string that represent the object, starting withe object's label, then radius, then metadata
-            return [f"{obj.label} radius: {obj.radius} {obj.metadata}" for obj in self.last_frame_objects]
-            #return [f"{obj.label}_object" for obj in self.last_frame_objects]
-    
-    def get_all_posible_labels(self) -> list[str]:
-        """Returns a list of all possible labels that this controller can see, even if they are not currently visible."""
-        return self.vision.get_all_potential_labels()
         
     def get_error(self, frame_center, center):
         return center - frame_center
@@ -589,3 +552,44 @@ class FollowClawController(Controller):
     
     def stop(self):
         self.keep_running = False
+        
+    #region Controler Base Interface
+    def set_target_label(self, label: str) -> bool:
+        """This controller will only target objects with the specified label."""
+        if self.is_label_in_universe(label):
+            self.target_label = label
+            return True
+        else:
+            print(f"Label {label} is not in the universe of {self.__name__}.")
+            print(f"Please select a lable that is in universe: {self.vision.get_all_potential_labels()}")
+            return False
+        
+    def get_target_label(self) -> str:
+        """Returns the label of the object that the controller is currently targeting."""
+        return self.target_label
+        
+    def is_label_in_universe(self, label: str) -> bool:
+        """Returns True if the label is something this controler can see, else false."""
+        all_labels = self.vision.get_all_potential_labels()
+        return (label in all_labels)
+    
+    def get_visible_object_labels(self) -> list[str]:
+        """Returns a list of identifiers of objects that are visible to the arm"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            return [obj.label for obj in self.last_frame_objects]
+        
+    def get_visible_object_labels_detailed(self) -> list[str]:
+        """Returns a list of objects that are visible to the arm, including metadata"""
+        with self.last_frame_objects_lock:
+            if self.last_frame_objects is None:
+                return []
+            # return a series of string that represent the object, starting withe object's label, then radius, then metadata
+            return [f"{obj.label} radius: {obj.radius} {obj.metadata}" for obj in self.last_frame_objects]
+            #return [f"{obj.label}_object" for obj in self.last_frame_objects]
+    
+    def get_all_posible_labels(self) -> list[str]:
+        """Returns a list of all possible labels that this controller can see, even if they are not currently visible."""
+        return self.vision.get_all_potential_labels()
+    #endregion Controler Base Interface
