@@ -13,7 +13,7 @@ from HALs.HAL_base import HAL_base
 from Vision.VisionObject import VisionObject
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Modules.Base.ImageProducer import ImageProducer
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 
 # Define the DH parameters for the arm
 # a1: The vertical distance from the base of the robotic arm to the first joint (shoulder joint).
