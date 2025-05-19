@@ -26,6 +26,10 @@ class MoveToPointOnScreenController(Controller):
     def stop(self) -> None:
         pass
 
+    def set_target_position_on_screen(self, x: int, y: int):
+        self.horizontal_distance_from_center = x
+        self.vertical_distance_from_center = y
+
     def calculate_base_theta(self):
         if abs(self.horizontal_distance_from_center) > self.target_positional_tolerance:
             self.theta_base = self.selected_HAL.get_joint(0) - self.error_movment_intensity * self.horizontal_distance_from_center * math.exp(-self.smoothness)
@@ -39,32 +43,36 @@ class MoveToPointOnScreenController(Controller):
             self.servo_1 = self.servo_1 + 3 * self.target_diameter_pixels * math.exp(-self.smoothness)
         if abs(self.target_diameter_pixels) > self.target_actual_diameter_pixels:
             self.servo_1 = self.servo_1 - 3 * self.target_diameter_pixels * math.exp(-self.smoothness)
+        return self.servo_1
 
     def calculate_servo_2_theta(self):
         if abs(self.vertical_distance_from_center) > self.target_positional_tolerance:
-            self.servo_2 = self.selected_HAL.get_joint(2) - self.K * self.vertical_distance_from_center * math.exp(-self.smoothness)
-        
+            self.servo_2 = self.selected_HAL.get_joint(2) - self.error_movment_intensity * self.vertical_distance_from_center * math.exp(-self.smoothness)
+        return self.servo_2    
+
+    def apply_movment(self):
+        theta_base = self.calculate_base_theta()
+        servo_1 = self.calculate_servo_1_theta()
+        servo_2 = self.calculate_servo_2_theta()                
+
+        if(theta_base < 0):
+            theta_base = 0
+        if(servo_2 < 0):
+            servo_2 = 0
+
+        if self.verbose_logging:
+            print('theta_base: ' + str(theta_base))
+            #print('servo_1: ' + str(servo_1))
+            print('servo_2: ' + str(servo_2))
+            print('------------------------------------------------------')
+
+        self.selected_HAL.set_joint(0, theta_base)
+        #self.selected_HAL.set_joint(1, servo_1)
+        self.selected_HAL.set_joint(2, servo_2)
+
     async def calculate_theta(self):
         while self.keep_running:
             # if there is an object found
-            if self.object_found:
-                self.calculate_base_theta()
-                self.calculate_servo_1_theta()
-                self.calculate_servo_2_theta()                
-
-                if(self.theta_base < 0):
-                    self.theta_base = 0
-                if(self.servo_2 < 0):
-                    self.servo_2 = 0
-
-                if self.verbose_logging:
-                    print('theta_base: ' + str(self.theta_base))
-                    #print('servo_1: ' + str(self.servo_1))
-                    print('servo_2: ' + str(self.servo_2))
-                    print('------------------------------------------------------')
-
-                self.selected_HAL.set_joint(0, self.theta_base)
-                #self.selected_HAL.set_joint(1, self.servo_1)
-                self.selected_HAL.set_joint(2, self.servo_2)
-                
+            if self.object_found:               
+                self.apply_movment()
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
