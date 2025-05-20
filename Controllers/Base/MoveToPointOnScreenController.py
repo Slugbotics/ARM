@@ -18,6 +18,9 @@ class MoveToPointOnScreenController(Controller):
         self.error_movment_intensity = 1 # how much the servos should move when the error is detected (was called K)
 
         self.verbose_logging = False # if True, will print out the theta values to the console
+        
+        self.keep_running = True
+        self.paused = False
 
     def start(self) -> None:
         self.horizontal_distance_from_center = 0
@@ -50,7 +53,7 @@ class MoveToPointOnScreenController(Controller):
             self.servo_2 = self.selected_HAL.get_joint(2) - self.error_movment_intensity * self.vertical_distance_from_center * math.exp(-self.smoothness)
         return self.servo_2    
 
-    def apply_movment(self):
+    def apply_movment(self) -> bool:
         theta_base = self.calculate_base_theta()
         servo_1 = self.calculate_servo_1_theta()
         servo_2 = self.calculate_servo_2_theta()                
@@ -66,13 +69,15 @@ class MoveToPointOnScreenController(Controller):
             print('servo_2: ' + str(servo_2))
             print('------------------------------------------------------')
 
-        self.selected_HAL.set_joint(0, theta_base)
-        #self.selected_HAL.set_joint(1, servo_1)
-        self.selected_HAL.set_joint(2, servo_2)
+        set_0_sucess = self.selected_HAL.set_joint(0, theta_base)
+        #set_1_sucess =  self.selected_HAL.set_joint(1, servo_1)
+        set_2_sucess = self.selected_HAL.set_joint(2, servo_2)
+        
+        return (set_0_sucess and set_2_sucess) # and set_1_sucess
 
     async def calculate_theta(self):
         while self.keep_running:
             # if there is an object found
-            if self.object_found:               
+            if not self.paused:               
                 self.apply_movment()
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
