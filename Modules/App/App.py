@@ -12,7 +12,7 @@ from kivy.properties import ObjectProperty
 from kivy.uix.tabbedpanel import TabbedPanel
 
 from Controllers import FollowClaw
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 from Controllers.FollowClaw import coordinate_input
 from HALs.HAL_base import HAL_base
 from Modules.App.AppBase import AppBase

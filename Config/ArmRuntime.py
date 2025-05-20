@@ -3,7 +3,7 @@ from typing import Any
 
 from HALs.HAL_base import HAL_base
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 from Modules.server.ServerBase import ServerBase
 from Modules.App.AppBase import AppBase
 from Modules.speech_to_text.STTBase import STTBase
@@ -94,7 +94,7 @@ class ArmRuntime:
         self.selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier()
         
         # controler stuff
-        from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
+        from Controllers.FollowLargestObjectControler_old import FollowLargestObjectControler
         self.selected_controller: Controller = FollowLargestObjectControler(self.selected_HAL, self.selected_object_identifier, "none")
 
         # App stuff

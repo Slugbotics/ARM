@@ -29,9 +29,10 @@ class MoveToPointOnScreenController(Controller):
     def stop(self) -> None:
         pass
 
-    def set_target_position_on_screen(self, x: int, y: int):
+    def set_target_position_on_screen(self, x: int, y: int, target_diameter_pixels):
         self.horizontal_distance_from_center = x
         self.vertical_distance_from_center = y
+        self.target_diameter_pixels = target_diameter_pixels
 
     def calculate_base_theta(self):
         if abs(self.horizontal_distance_from_center) > self.target_positional_tolerance:

@@ -1,4 +1,4 @@
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 from typing import Callable
 
 import Modules.Commands.Commands as Commands
