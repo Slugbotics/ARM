@@ -55,6 +55,21 @@ class FollowLargestObjectControler(MoveToPointOnScreenController, VisionBaseCont
 
         return (distance_from_center_x, distance_from_center_y)
 
+    def draw_target_visualization(self, frame, target_object: VisionObject):
+        #draw the bounding circle and the center of it
+        if frame is not None:
+            center = (target_object.get_center_x(), target_object.get_center_y())
+            cv2.circle(frame, center, target_object.radius, (0, 255, 0), 2)
+            cv2.circle(frame, center, 7, (255, 255, 255), -1)
+
+        flipped_source_frame_rgb = cv2.flip(target_object.source_frame_rgb, 0)
+        bgr_image = cv2.cvtColor(flipped_source_frame_rgb, cv2.COLOR_RGB2BGR)
+        cv2.imshow('Frame', bgr_image)
+        if target_object.mask is not None:
+            # flipped_mask = cv2.flip(target_object.mask, 0)
+            # cv2.imshow('Mask', flipped_mask)
+            cv2.imshow('Mask', target_object.mask)
+
     async def update_frame(self) -> bool:
         frame = self.imageGetter.capture_image()
             
@@ -70,19 +85,7 @@ class FollowLargestObjectControler(MoveToPointOnScreenController, VisionBaseCont
             if self.verbose_logging:
                 print(f"Error X: {distance_from_center_x}, Error Y: {distance_from_center_y}, Radius: {target_object.radius}")
 
-            #draw the bounding circle and the center of it
-            if frame is not None:
-                center = (target_object.get_center_x(), target_object.get_center_y())
-                cv2.circle(frame, center, target_object.radius, (0, 255, 0), 2)
-                cv2.circle(frame, center, 7, (255, 255, 255), -1)
-
-            flipped_source_frame_rgb = cv2.flip(target_object.source_frame_rgb, 0)
-            bgr_image = cv2.cvtColor(flipped_source_frame_rgb, cv2.COLOR_RGB2BGR)
-            cv2.imshow('Frame', bgr_image)
-            if target_object.mask is not None:
-                # flipped_mask = cv2.flip(target_object.mask, 0)
-                # cv2.imshow('Mask', flipped_mask)
-                cv2.imshow('Mask', target_object.mask)
+            self.draw_target_visualization(frame, target_object)
         # check if the user pressed 'q' to exit
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  # wait and exit
