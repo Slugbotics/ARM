@@ -66,6 +66,7 @@ class FollowLargestObjectControler(Controller, VisionBaseController, MoveToPoint
                 # flipped_mask = cv2.flip(target_object.mask, 0)
                 # cv2.imshow('Mask', flipped_mask)
                 cv2.imshow('Mask', target_object.mask)
+        # check if the user pressed 'q' to exit
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  # wait and exit
             return False
