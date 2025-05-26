@@ -8,7 +8,7 @@ from Controllers.Base.Controller import Controller
 class MoveToPointOnScreenController(Controller):
 
     def __init__(self, selected_HAL: HAL_base):
-        super().__init__(selected_HAL)
+        Controller.__init__(selected_HAL)
         self.selected_HAL = selected_HAL
 
         self.target_positional_tolerance = 5 # acceptable distance from the target screen position (was named error_tolerance_coord)

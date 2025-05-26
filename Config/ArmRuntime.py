@@ -94,7 +94,7 @@ class ArmRuntime:
         self.selected_object_identifier: VisualObjectIdentifier = ColorObjectIdentifier()
         
         # controler stuff
-        from Controllers.FollowLargestObjectControler_old import FollowLargestObjectControler
+        from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
         self.selected_controller: Controller = FollowLargestObjectControler(self.selected_HAL, self.selected_object_identifier, "none")
 
         # App stuff

@@ -13,10 +13,9 @@ from Controllers.Base.Controller import Controller
 from Controllers.Base.VisionControllerBase import VisionBaseController
 from Controllers.Base.MoveToPointOnScreenController import MoveToPointOnScreenController
 
-class FollowLargestObjectControler(Controller, VisionBaseController, MoveToPointOnScreenController):
+class FollowLargestObjectControler(MoveToPointOnScreenController, VisionBaseController):
     def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, target_label: str = None):
 
-        Controller.__init__(self)
         VisionBaseController.__init__(self, vision, target_label)
         MoveToPointOnScreenController.__init__(self, selected_HAL)
 
@@ -43,7 +42,7 @@ class FollowLargestObjectControler(Controller, VisionBaseController, MoveToPoint
             
         detected_objects: List[VisionObject] = self.vision.process_frame(frame) 
         
-        target_object: VisionObject = VisionBaseController.select_largest_target_object(detected_objects)   
+        target_object: VisionObject = self.select_largest_target_object(detected_objects)   
         
         self.object_found = (target_object is not None)
         if(self.object_found):
@@ -71,7 +70,7 @@ class FollowLargestObjectControler(Controller, VisionBaseController, MoveToPoint
             await asyncio.sleep(0.03)  # wait and exit
             return False
         
-        VisionBaseController.set_last_frame_objects(detected_objects)
+        self.set_last_frame_objects(detected_objects)
                 
         return True
 
