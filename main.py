@@ -4,6 +4,8 @@
 import subprocess
 import sys
 import os
+import logging
+from datetime import datetime
 
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -12,6 +14,16 @@ from Config.ArmRuntime import ArmRuntime
 from Config.ArmConfig import ArmConfig
 
 if __name__ == "__main__":
+    # ----------------- LOGGING SETUP -----------------
+    log_filename = f"arm_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename, encoding='utf-8'),
+            logging.StreamHandler()
+        ]
+    )
     # ----------------- SETUP -----------------
     print("Arm startup")
     
