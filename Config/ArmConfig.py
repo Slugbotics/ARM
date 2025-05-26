@@ -2,6 +2,7 @@ import argparse
 import json
 from typing import Dict
 from typing import Any
+from Config.ArmPhysicalParameters import ArmPhysicalParameters
 
 class ArmConfig:
     
@@ -30,6 +31,8 @@ class ArmConfig:
         "remote_hal_ip": "127.0.0.1",
         "remote_hal_port": "8000",
     }
+    
+    armPhysicalParameters = ArmPhysicalParameters()  # Default physical parameters for the arm
     
     def load_config(self, config_file_path: str = 'config.json') -> Dict[str, Any]:
         config = dict(self.CONFIG_DEFAULT_DICT)  # Create a copy of the default config

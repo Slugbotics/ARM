@@ -12,9 +12,16 @@ from Controllers.Base.Controller import Controller
 
 from Controllers.Base.VisionControllerBase import VisionBaseController
 from Controllers.Base.MoveToPointOnScreenController import MoveToPointOnScreenController
+from Config.ArmPhysicalParameters import ArmPhysicalParameters
 
 class FollowLargestObjectControler(MoveToPointOnScreenController, VisionBaseController):
-    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, target_label: str = None):
+    def __init__(
+        self,
+        selected_HAL: HAL_base,
+        vision: VisualObjectIdentifier,
+        target_label: str = None,
+        arm_params: ArmPhysicalParameters = None
+    ):
 
         VisionBaseController.__init__(self, vision, target_label)
         MoveToPointOnScreenController.__init__(self, selected_HAL)
@@ -22,6 +29,17 @@ class FollowLargestObjectControler(MoveToPointOnScreenController, VisionBaseCont
         self.selected_HAL: HAL_base = selected_HAL
         self.vision: VisualObjectIdentifier = vision
         self.imageGetter: ImageProducer = selected_HAL
+
+        self.arm_params: ArmPhysicalParameters = arm_params  # Store ArmPhysicalParameters
+
+        # Apply joint limits from ArmPhysicalParameters if provided
+        if self.arm_params is not None:
+            self.selected_HAL.set_joint_min(0, self.arm_params.base_min)
+            self.selected_HAL.set_joint_max(0, self.arm_params.base_max)
+            self.selected_HAL.set_joint_min(1, self.arm_params.joint1_min)
+            self.selected_HAL.set_joint_max(1, self.arm_params.joint1_max)
+            self.selected_HAL.set_joint_min(2, self.arm_params.joint2_min)
+            self.selected_HAL.set_joint_max(2, self.arm_params.joint2_max)
 
         self.keep_running = False    
 

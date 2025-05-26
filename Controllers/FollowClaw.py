@@ -9,52 +9,43 @@ import sympy as sym
 #import RPi.GPIO as GPIO
 import time
 
+# --- Constants for Magic Numbers ---
+SMOOTHING_FACTOR = 0.1
+ANGLE_OFFSET_90 = 90
+ANGLE_OFFSET_180 = 180
+FRAME_SLEEP_SECONDS = 0.03
+HARD_CODED_ANGLE_RAD = math.radians(22.5)
+A6_EPSILON = 0.0001
+M_TO_CM = 100
+PIXEL_TO_METER = 0.01
+
 from HALs.HAL_base import HAL_base
 from Vision.VisionObject import VisionObject
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Modules.Base.ImageProducer import ImageProducer
 from Controllers.Base.Controller import Controller
+from Config.ArmPhysicalParameters import ArmPhysicalParameters
 
-# Define the DH parameters for the arm
-# a1: The vertical distance from the base of the robotic arm to the first joint (shoulder joint).
-#     This represents the height of the base. Modify this value if the base height of the arm changes.
-a1 = 13.1
-
-# a2: The horizontal offset or distance between the first joint (shoulder) and the second joint (elbow).
-#     This represents the length of the link connecting these joints. Adjust this if the arm's shoulder-to-elbow link changes.
-a2 = 3.25
-
-# a3: The length of the upper arm, which is the distance between the shoulder joint and the elbow joint.
-#     Modify this value if the upper arm's length changes.
-a3 = 11.4
-
-# a4: The horizontal offset or distance between the elbow joint and the wrist joint.
-#     This represents the length of the link connecting these joints. Adjust this if the elbow-to-wrist link changes.
-a4 = 3.25
-
-# a5: The length of the forearm, which is the distance between the elbow joint and the wrist joint.
-#     Modify this value if the forearm's length changes.
-a5 = 5.8
-
-# a6: The distance from the wrist joint to the end-effector (e.g., gripper or tool).
-#     This represents the final segment of the robotic arm. Adjust this if the wrist-to-end-effector length changes.
-a6 = 11.11
-
-# How to Modify These Parameters:
-# Measure the Physical Dimensions:
-
-# If the robotic arm's design changes (e.g., different link lengths or offsets), measure the new dimensions and update the corresponding parameter.
-# Ensure Consistency:
-
-# When modifying these parameters, ensure that the values match the actual physical dimensions of the robotic arm. Incorrect values will lead to inaccurate kinematics calculations.
-# Test After Modification:
-
-# After updating the parameters, test the arm's forward and inverse kinematics to verify that the changes are correctly reflected in the arm's movements.
-
-def coordinate_input(x, y, z,hal,vision=False):
+def coordinate_input(x, y, z, hal, vision=False, arm_params=None):
     global mtr
     global sim
     try:
+        # Use arm_params if provided, otherwise fallback to module-level defaults
+        if arm_params is not None:
+            a1 = arm_params.a1
+            a2 = arm_params.a2
+            a3 = arm_params.a3
+            a4 = arm_params.a4
+            a5 = arm_params.a5
+            a6 = arm_params.a6
+        else:
+            a1 = 13.1
+            a2 = 3.25
+            a3 = 11.4
+            a4 = 3.25
+            a5 = 5.8
+            a6 = 11.11
+
         robot_arm1 = Three_Degree_Arm(a1, a2, a3, a4, a5, a6)
         # caluclate angles
         angles = robot_arm1.calculate_angles(sym.Matrix([x, y, z, 1]))
@@ -69,18 +60,18 @@ def coordinate_input(x, y, z,hal,vision=False):
             print(theta)
             opp = z - a1
             dist = sym.sqrt(x ** 2 + y ** 2)
-            t0deg = float(sym.deg(theta).evalf()) + 180
+            t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
             t0deg = (t0deg + 360) % 360
             if dist == 0:
-                theta1 = 90
+                theta1 = ANGLE_OFFSET_90
             else:
                 theta1 = sym.atan(opp / dist)
-            t1deg = 90 - (float(sym.deg(theta1).evalf()))
+            t1deg = ANGLE_OFFSET_90 - (float(sym.deg(theta1).evalf()))
             t0n = hal.get_joint(0)
 
             t1n = hal.get_joint(1)
-            t0n = t0n + (t0deg - t0n) * .1
-            t1n = t1n + (t1deg - t1n) * .1
+            t0n = t0n + (t0deg - t0n) * SMOOTHING_FACTOR
+            t1n = t1n + (t1deg - t1n) * SMOOTHING_FACTOR
             hal.set_joint(0, t0deg)
             hal.set_joint(1, t1deg)
             hal.set_joint(2, 0)
@@ -100,23 +91,23 @@ def coordinate_input(x, y, z,hal,vision=False):
             print(theta)
             opp = z - a1
             dist = sym.sqrt(x ** 2 + y ** 2)
-            t0deg = float(sym.deg(theta).evalf()) + 180
+            t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
             t0deg = (t0deg + 360) % 360
             angle_base = t0deg
             angle_base = (angle_base + 360) % 360
 
             # theta 1 output : -90 to 90
-            angle_1 = -(angles[1]-90)
+            angle_1 = -(angles[1] - ANGLE_OFFSET_90)
 
             # theta 2 output : 0 to 180
-            angle_2 =-(angles[2]-90)
+            angle_2 = -(angles[2] - ANGLE_OFFSET_90)
 
             print("--------- Moving ARM ---------")
             if vision:
-                print(f"joint:{hal.get_joint(0)}, new: {angle_base}, mid: {hal.get_joint(0)+0.1*(angle_base-hal.get_joint(0))}")
-                hal.set_joint(0,angle_base)
-                hal.set_joint(1, hal.get_joint(1)+0.1*(angle_1-hal.get_joint(1)))
-                hal.set_joint(2, hal.get_joint(2)+0.1*(angle_2-hal.get_joint(2)))
+                print(f"joint:{hal.get_joint(0)}, new: {angle_base}, mid: {hal.get_joint(0)+SMOOTHING_FACTOR*(angle_base-hal.get_joint(0))}")
+                hal.set_joint(0, angle_base)
+                hal.set_joint(1, hal.get_joint(1) + SMOOTHING_FACTOR * (angle_1 - hal.get_joint(1)))
+                hal.set_joint(2, hal.get_joint(2) + SMOOTHING_FACTOR * (angle_2 - hal.get_joint(2)))
             else:
                 hal.set_joint(0, angle_base)
                 hal.set_joint(1, angle_1)
@@ -212,20 +203,22 @@ class Three_Degree_Arm:
             print('This point is not feasible')
 
 class FollowClawController(Controller):
-    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, target_label: str = None):
+    def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, arm_params: ArmPhysicalParameters, target_label: str = None):
         self.selected_HAL: HAL_base = selected_HAL
         self.vision: VisualObjectIdentifier = vision
         self.imageGetter: ImageProducer = selected_HAL
-        
+        self.arm_params: ArmPhysicalParameters = arm_params  # Save ArmPhysicalParameters
+
         self._task = None  # To keep track of the running task
         self.keep_running = False
         self.thread = None
         self.verbose_logging = False
         self.target_label = target_label
-        
+
         self.last_frame_objects: List[VisionObject] = []
         self.last_frame_objects_lock: Lock = threading.Lock()
-        
+
+        # Use arm_params for all relevant parameters
         self.K = 1
         self.lambda_ = 3          # change (3 is smooth in sim) increase number to go slower
         self.error_tolerance_coord = 5  # change for error precision
@@ -246,23 +239,24 @@ class FollowClawController(Controller):
         self.mask=False
         self.paused = False
         self.use_controller = False
-        # in m
-        self.sensor_size = .006
-        self.focal_length = .0063
-        # in pixels
-        self.sensor_res = 1257
-        # in radians
-        self.fov = math.radians(60)
+
+        # Camera calibration from arm_params
+        self.sensor_size = arm_params.sensor_size
+        self.focal_length = arm_params.focal_length
+        self.sensor_res = arm_params.sensor_res
+        self.fov = math.radians(arm_params.fov)
+
         self.contours = False
-        selected_HAL.set_joint_min(0, 0) # set_base_min_degree(0)
-        selected_HAL.set_joint_max(0, 270) # set_base_max_degree(270)
-        selected_HAL.set_joint_max(2, 75) # set_joint_2_max(75)
-        
-    
-        
+        selected_HAL.set_joint_min(0, arm_params.base_min)
+        selected_HAL.set_joint_max(0, arm_params.base_max)        
+        selected_HAL.set_joint_min(1, arm_params.joint1_min)
+        selected_HAL.set_joint_max(1, arm_params.joint1_max)      
+        selected_HAL.set_joint_min(2, arm_params.joint2_min)  
+        selected_HAL.set_joint_max(2, arm_params.joint2_max)        
+
     def get_error(self, frame_center, center):
         return center - frame_center
-    
+
     def convert(self, T):
         return np.array([
             T[0][3],
@@ -271,7 +265,7 @@ class FollowClawController(Controller):
         ])
 
     def merge(self, FK, BP):
-        FK = FK * .01
+        FK = FK * PIXEL_TO_METER
         print(FK)
         print(BP)
         return np.array([
@@ -292,6 +286,7 @@ class FollowClawController(Controller):
     def calculate_theta(self):
         # if there is an object found
         if self.object_found:
+            # Use self.arm_params for all arm and camera parameters
             focal_len = self.sensor_size / (2 * math.tan(self.fov / 2))
             f_pixels = self.focal_length * (self.sensor_res / self.sensor_size)
             distance = f_pixels * .02 / (2 * self.pixel_dia)
@@ -304,7 +299,7 @@ class FollowClawController(Controller):
         # around y
             b = -np.deg2rad(self.selected_HAL.get_joint(1)) - np.deg2rad(self.selected_HAL.get_joint(2))
             # around x
-            a = -math.radians(22.5)
+            a = -HARD_CODED_ANGLE_RAD
             # around z
             c = np.deg2rad(self.selected_HAL.get_joint(0))
             print(f"Around Y = {b}, Around Z = {c}")
@@ -336,8 +331,8 @@ class FollowClawController(Controller):
             l1sol = np.matmul(l1inv, offset_matrix)
             l1tr = np.array([
                 l1sol[0],
-                l1sol[1] + (52.454 / 1000),
-                l1sol[2] + (33.704 / 1000)
+                l1sol[1] + self.arm_params.kinematic_offset_y,
+                l1sol[2] + self.arm_params.kinematic_offset_z
             ])
                 # Second order matrix
             matrix = np.matmul(R_y, R_z)
@@ -346,16 +341,16 @@ class FollowClawController(Controller):
             # print(f"xOffset: {x_off}, yOffset: {y_off}, zOffset: {depth}")
             print(f"x:{solution[0]}, y: {solution[1]},z: {solution[2]}")
             solution[1] = -solution[1]
-            
-            a1 = 13.1
-            a2 = 3.25
-            a3 = 11.4
-            a4 = 3.25
-            a5 = 5.8
-            a6 = .0001
+
+            a1 = self.arm_params.a1
+            a2 = self.arm_params.a2
+            a3 = self.arm_params.a3
+            a4 = self.arm_params.a4
+            a5 = self.arm_params.a5
+            a6 = A6_EPSILON  # keep as before for calculation stability
             theta1 = round(np.deg2rad(self.selected_HAL.get_joint(0)), 5) if np.abs(np.deg2rad(self.selected_HAL.get_joint(0))) > .001 else 0
-            theta2 = round(np.deg2rad(self.selected_HAL.get_joint(1)), 5) + math.radians(90) if np.abs(np.deg2rad(self.selected_HAL.get_joint(1))) > .001 else math.radians(90)
-            theta3 = round(np.deg2rad(self.selected_HAL.get_joint(2)), 5) + math.radians(90) if np.abs(np.deg2rad(self.selected_HAL.get_joint(2))) > .001 else math.radians(90)
+            theta2 = round(np.deg2rad(self.selected_HAL.get_joint(1)), 5) + math.radians(ANGLE_OFFSET_90) if np.abs(np.deg2rad(self.selected_HAL.get_joint(1))) > .001 else math.radians(ANGLE_OFFSET_90)
+            theta3 = round(np.deg2rad(self.selected_HAL.get_joint(2)), 5) + math.radians(ANGLE_OFFSET_90) if np.abs(np.deg2rad(self.selected_HAL.get_joint(2))) > .001 else math.radians(ANGLE_OFFSET_90)
             theta4 = 0
             H0_1 = self.DH(theta1, np.pi / 2, 0, a1)
             H1_2 = self.DH(theta2, 0, a3, -a2)
@@ -366,11 +361,11 @@ class FollowClawController(Controller):
             H0_4 = np.matmul(H0_3, H3_4)
             print(f"t1: {theta1}, t2: {theta2}, t3: {theta3}")
             print(f"FK: {self.convert(H0_4)}")
-            ballPosition = self.merge(self.convert(H0_4), solution) * 100
+            ballPosition = self.merge(self.convert(H0_4), solution) * M_TO_CM
             print(f"Final Ball Position (cm) {ballPosition}")
-            coordinate_input(ballPosition[0], ballPosition[1], ballPosition[2], self.selected_HAL,True)
-            asyncio.sleep(0.03)  #run detection every 1/30 seconds
-        
+            coordinate_input(ballPosition[0], ballPosition[1], ballPosition[2], self.selected_HAL, True, self.arm_params)
+            asyncio.sleep(FRAME_SLEEP_SECONDS)  #run detection every 1/30 seconds
+
     def select_largest_target_object(self, detected_objects: List[VisionObject]) -> VisionObject:
         # print("found: " + str(len(detected_objects)) + " objects")
         
@@ -423,7 +418,7 @@ class FollowClawController(Controller):
     
 
     def get_frame_mask(self):
-        return cv2.resize(self.imageGetter.capture_image(), (0,0), fx=0.25, fy=0.25) , self.mask
+        return cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) , self.mask
     
     def calculate_sam_theta(self): 
         if self.object_found:
@@ -479,7 +474,7 @@ class FollowClawController(Controller):
 
     async def update_frame(self) -> bool:
         print("x")
-        frame = cv2.resize(self.imageGetter.capture_image(), (0,0), fx=0.25, fy=0.25) 
+        frame = cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) 
         # pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         # # For Sam Code ON physical****
         # pframe = cv2.flip(pframe, -1)
@@ -502,7 +497,7 @@ class FollowClawController(Controller):
             self.mask = cv2.flip(amask,-1)
             print('Object Found!')
         else: 
-            self.mask = cv2.resize(self.imageGetter.capture_image(), (0,0), fx=0.25, fy=0.25) 
+            self.mask = cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
             return False

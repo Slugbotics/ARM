@@ -1,6 +1,7 @@
 from typing import Dict
 from typing import Any
 
+from Config.ArmConfig import ArmConfig
 from HALs.HAL_base import HAL_base
 from Vision.VisualObjectIdentifier import VisualObjectIdentifier
 from Controllers.Base.Controller import Controller
@@ -95,7 +96,7 @@ class ArmRuntime:
         
         # controler stuff
         from Controllers.FollowLargestObjectControler import FollowLargestObjectControler
-        self.selected_controller: Controller = FollowLargestObjectControler(self.selected_HAL, self.selected_object_identifier, "none")
+        self.selected_controller: Controller = FollowLargestObjectControler(self.selected_HAL, self.selected_object_identifier, arm_params=ArmConfig.armPhysicalParameters, target_label="none")
 
         # App stuff
         if config["use_app"]:
@@ -103,7 +104,7 @@ class ArmRuntime:
             from Modules.App.App import App
             from Controllers.FollowClaw import FollowClawController
             self.selected_object_identifier: ColorObjectIdentifier = ColorObjectIdentifier()
-            self.selected_controller = FollowClawController(self.selected_HAL, self.selected_object_identifier)    
+            self.selected_controller = FollowClawController(self.selected_HAL, self.selected_object_identifier, arm_params=ArmConfig.armPhysicalParameters, target_label="none")    
             self.selected_app = App(self.selected_controller, self.selected_HAL, self.selected_object_identifier)
             
         # Server setup
