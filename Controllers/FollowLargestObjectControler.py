@@ -1,3 +1,15 @@
+"""
+FollowLargestObjectControler.py
+
+Summary:
+    This script implements a controller for a robotic arm that uses computer vision to detect, track, and follow the largest object in the camera's view.
+    It integrates with a hardware abstraction layer (HAL), vision modules, and arm kinematics to compute and command joint movements based on the detected object's position.
+    The controller supports asynchronous operation, real-time visualization, and applies joint limits from the arm's physical parameters.
+
+Author:
+    UCSC Slugbotics Club, Arm Team
+"""
+
 from typing import List
 from typing import Tuple
 import asyncio

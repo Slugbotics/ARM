@@ -30,6 +30,12 @@ class MoveToPointOnScreenController(Controller):
         pass
 
     def set_target_position_on_screen(self, x: int, y: int, target_diameter_pixels):
+        """
+        Set the target position on the screen for the arm to move to.
+        :param x: Horizontal distance from the center of the frame.
+        :param y: Vertical distance from the center of the frame.
+        :param target_diameter_pixels: Diameter of the target in pixels (used to decide when the arm is 'close enough').
+        """
         self.horizontal_distance_from_center = x
         self.vertical_distance_from_center = y
         self.target_diameter_pixels = target_diameter_pixels

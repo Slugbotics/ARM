@@ -1,3 +1,16 @@
+"""
+FollowObject3DControler.py
+
+Summary:
+    This script implements a controller for a robotic arm that visually tracks and follows a 3D object using computer vision.
+    It integrates with a hardware abstraction layer (HAL), vision modules, and arm kinematics to compute and command joint movements
+    based on the detected position of a target object in camera frames. The controller supports asynchronous operation, 
+    object selection by label, and provides utility methods for interacting with detected objects and arm state.
+
+Author:
+    UCSC Slugbotics Club, Arm Team
+"""
+
 import threading
 from threading import Lock
 import math
@@ -8,6 +21,14 @@ import numpy as np
 import sympy as sym
 #import RPi.GPIO as GPIO
 import time
+import logging
+
+from HALs.HAL_base import HAL_base
+from Vision.VisionObject import VisionObject
+from Vision.VisualObjectIdentifier import VisualObjectIdentifier
+from Modules.Base.ImageProducer import ImageProducer
+from Controllers.Base.Controller import Controller
+from Config.ArmPhysicalParameters import ArmPhysicalParameters
 
 # --- Constants for Magic Numbers ---
 SMOOTHING_FACTOR = 0.1
@@ -18,104 +39,129 @@ HARD_CODED_ANGLE_RAD = math.radians(22.5)
 A6_EPSILON = 0.0001
 M_TO_CM = 100
 PIXEL_TO_METER = 0.01
+resize_fx = 0.25
+resize_fy = 0.25
 
-from HALs.HAL_base import HAL_base
-from Vision.VisionObject import VisionObject
-from Vision.VisualObjectIdentifier import VisualObjectIdentifier
-from Modules.Base.ImageProducer import ImageProducer
-from Controllers.Base.Controller import Controller
-from Config.ArmPhysicalParameters import ArmPhysicalParameters
+def set_arm_target_position(
+    x: float,
+    y: float,
+    z: float,
+    hal,
+    arm_params: ArmPhysicalParameters,
+    smoothing_factor: float = 0.1
+) -> bool:
+    """
+    Calculates and commands the arm to reach the given (x, y, z) position.
 
-def coordinate_input(x, y, z, hal, vision=False, arm_params=None):
-    global mtr
-    global sim
+    Args:
+        x (float): Target x coordinate.
+        y (float): Target y coordinate.
+        z (float): Target z coordinate.
+        hal: Hardware abstraction layer for controlling the arm.
+        arm_params (ArmPhysicalParameters): Arm physical parameters (required).
+        smoothing_factor (float): Smoothing factor for joint movement.
+
+    Returns:
+        bool: True if the position is reachable and command sent, False if fallback was used.
+
+    Raises:
+        ValueError: If arm_params is not provided.
+        Exception: For unexpected errors.
+    """
+
     try:
-        # Use arm_params if provided, otherwise fallback to module-level defaults
-        if arm_params is not None:
-            a1 = arm_params.a1
-            a2 = arm_params.a2
-            a3 = arm_params.a3
-            a4 = arm_params.a4
-            a5 = arm_params.a5
-            a6 = arm_params.a6
-        else:
-            a1 = 13.1
-            a2 = 3.25
-            a3 = 11.4
-            a4 = 3.25
-            a5 = 5.8
-            a6 = 11.11
-
-        robot_arm1 = Three_Degree_Arm(a1, a2, a3, a4, a5, a6)
-        # caluclate angles
-        angles = robot_arm1.calculate_angles(sym.Matrix([x, y, z, 1]))
-
+        angles = _calculate_kinematics(x, y, z, arm_params)
         if angles is None:
-            EE = sym.Matrix([x, y, z, 1])
-            x, y, z, t = EE
-            if x != 0 or y != 0:
-                theta = sym.atan2(y, x)
-            else:
-                theta = 0
-            print(theta)
-            opp = z - a1
-            dist = sym.sqrt(x ** 2 + y ** 2)
-            t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
-            t0deg = (t0deg + 360) % 360
-            if dist == 0:
-                theta1 = ANGLE_OFFSET_90
-            else:
-                theta1 = sym.atan(opp / dist)
-            t1deg = ANGLE_OFFSET_90 - (float(sym.deg(theta1).evalf()))
-            t0n = hal.get_joint(0)
-
-            t1n = hal.get_joint(1)
-            t0n = t0n + (t0deg - t0n) * SMOOTHING_FACTOR
-            t1n = t1n + (t1deg - t1n) * SMOOTHING_FACTOR
-            hal.set_joint(0, t0deg)
-            hal.set_joint(1, t1deg)
-            hal.set_joint(2, 0)
-
-
+            logging.warning("Target position unreachable, using fallback kinematics.")
+            _fallback_kinematics(x, y, z, hal, arm_params, smoothing_factor)
+            return False
         else:
-            # ANGLES: angle[0]=base angle[1]=servo1 angle[2]=servo2
-
-            # what is BASE ANGLE?
-
-            EE = sym.Matrix([x, y, z, 1])
-            x, y, z, t = EE
-            if x != 0 or y != 0:
-                theta = sym.atan2(y, x)
-            else:
-                theta = 0
-            print(theta)
-            opp = z - a1
-            dist = sym.sqrt(x ** 2 + y ** 2)
-            t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
-            t0deg = (t0deg + 360) % 360
-            angle_base = t0deg
-            angle_base = (angle_base + 360) % 360
-
-            # theta 1 output : -90 to 90
-            angle_1 = -(angles[1] - ANGLE_OFFSET_90)
-
-            # theta 2 output : 0 to 180
-            angle_2 = -(angles[2] - ANGLE_OFFSET_90)
-
-            print("--------- Moving ARM ---------")
-            if vision:
-                print(f"joint:{hal.get_joint(0)}, new: {angle_base}, mid: {hal.get_joint(0)+SMOOTHING_FACTOR*(angle_base-hal.get_joint(0))}")
-                hal.set_joint(0, angle_base)
-                hal.set_joint(1, hal.get_joint(1) + SMOOTHING_FACTOR * (angle_1 - hal.get_joint(1)))
-                hal.set_joint(2, hal.get_joint(2) + SMOOTHING_FACTOR * (angle_2 - hal.get_joint(2)))
-            else:
-                hal.set_joint(0, angle_base)
-                hal.set_joint(1, angle_1)
-                hal.set_joint(2, angle_2)
-
+            _command_hardware(angles, x, y, z, hal, arm_params, smoothing_factor)
+            return True
     except Exception as err:
-        print(f"Exeption in moving the arm (coordinate_input): {err=}, {type(err)=}")
+        logging.exception(f"Exception in set_arm_target_position: {err}")
+        raise
 
+def _calculate_kinematics(
+    x: float,
+    y: float,
+    z: float,
+    arm_params: 'ArmPhysicalParameters'
+):
+    """
+    Calculates joint angles using the arm's kinematics.
+
+    Returns:
+        tuple or None: (theta1_deg, theta2_deg, theta3_deg) if reachable, else None.
+    """
+    robot_arm = Three_Degree_Arm(
+        arm_params.a1, arm_params.a2, arm_params.a3,
+        arm_params.a4, arm_params.a5, arm_params.a6
+    )
+    return robot_arm.calculate_angles(sym.Matrix([x, y, z, 1]))
+
+def _fallback_kinematics(
+    x: float,
+    y: float,
+    z: float,
+    hal,
+    arm_params: ArmPhysicalParameters,
+    smoothing_factor: float
+) -> None:
+    """
+    Fallback for unreachable positions: computes simple base and shoulder angles.
+    """
+    a1 = arm_params.a1
+    ANGLE_OFFSET_90 = 90
+    ANGLE_OFFSET_180 = 180
+
+    theta = sym.atan2(y, x) if (x != 0 or y != 0) else 0
+    opp = z - a1
+    dist = sym.sqrt(x ** 2 + y ** 2)
+    t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
+    t0deg = (t0deg + 360) % 360
+    theta1 = sym.atan(opp / dist) if dist != 0 else ANGLE_OFFSET_90
+    t1deg = ANGLE_OFFSET_90 - (float(sym.deg(theta1).evalf()))
+    t0n = hal.get_joint(0)
+    t1n = hal.get_joint(1)
+    t0n = t0n + (t0deg - t0n) * smoothing_factor
+    t1n = t1n + (t1deg - t1n) * smoothing_factor
+    hal.set_joint(0, t0n)
+    hal.set_joint(1, t1n)
+    hal.set_joint(2, 0)
+    logging.info(f"Fallback kinematics used: base={t0n:.2f}, shoulder={t1n:.2f}, elbow=0")
+
+def _command_hardware(
+    angles,
+    x: float,
+    y: float,
+    z: float,
+    hal,
+    arm_params: ArmPhysicalParameters,
+    smoothing_factor: float
+) -> None:
+    """
+    Sends calculated joint angles to the hardware, with optional smoothing.
+    """
+    ANGLE_OFFSET_90 = 90
+    ANGLE_OFFSET_180 = 180
+
+    theta = sym.atan2(y, x) if (x != 0 or y != 0) else 0
+    t0deg = float(sym.deg(theta).evalf()) + ANGLE_OFFSET_180
+    t0deg = (t0deg + 360) % 360
+    angle_base = t0deg
+    angle_base = (angle_base + 360) % 360
+    angle_1 = -(angles[1] - ANGLE_OFFSET_90)
+    angle_2 = -(angles[2] - ANGLE_OFFSET_90)
+
+    # Always use smoothing for consistency
+    base_val = hal.get_joint(0) + smoothing_factor * (angle_base - hal.get_joint(0))
+    shoulder_val = hal.get_joint(1) + smoothing_factor * (angle_1 - hal.get_joint(1))
+    elbow_val = hal.get_joint(2) + smoothing_factor * (angle_2 - hal.get_joint(2))
+    hal.set_joint(0, base_val)
+    hal.set_joint(1, shoulder_val)
+    hal.set_joint(2, elbow_val)
+    logging.info(f"Smooth move: base={base_val:.2f}, shoulder={shoulder_val:.2f}, elbow={elbow_val:.2f}")
 
 class Three_Degree_Arm:
     def __init__(self, a1, a2, a3, a4, a5, a6) -> None:
@@ -134,7 +180,7 @@ class Three_Degree_Arm:
             [0, 0, 0, 1]
         ])
 
-    def calculate_angles(self, EE):
+    def calculate_angles(self, EE) -> bool:
         x, y, z = EE[0], EE[1], EE[2]
 
         # Condition checks
@@ -201,8 +247,9 @@ class Three_Degree_Arm:
             return theta1_deg, theta2_deg, theta3_deg
         else:
             print('This point is not feasible')
+        return isInRegion
 
-class FollowClawController(Controller):
+class FollowObject3DControler(Controller):
     def __init__(self, selected_HAL: HAL_base, vision: VisualObjectIdentifier, arm_params: ArmPhysicalParameters, target_label: str = None):
         self.selected_HAL: HAL_base = selected_HAL
         self.vision: VisualObjectIdentifier = vision
@@ -284,24 +331,26 @@ class FollowClawController(Controller):
             [0, 0, 0, 1]
         ])
     def calculate_theta(self):
-        # if there is an object found
+        # Stage 1: Check if an object is found
         if self.object_found:
-            # Use self.arm_params for all arm and camera parameters
+            # Stage 2: Camera and pixel calculations
+            # Calculate camera intrinsics and estimate distance to the object using its pixel diameter
             focal_len = self.sensor_size / (2 * math.tan(self.fov / 2))
-            f_pixels = self.focal_length * (self.sensor_res / self.sensor_size)
-            distance = f_pixels * .02 / (2 * self.pixel_dia)
-            x_norm = self.error_x_distance / f_pixels
-            y_norm = self.error_y_distance / f_pixels
-            x_off = -math.tan(x_norm) * distance
-            y_off = math.tan(y_norm) * distance
-            print (f"x_off: {x_off}, y_off: {y_off}, depth: {math.pow(distance, 2) - math.pow(x_off, 2) - math.pow(y_off, 2)}")
-            depth = math.sqrt(math.pow(distance, 2) - math.pow(x_off, 2) - math.pow(y_off, 2))
-        # around y
-            b = -np.deg2rad(self.selected_HAL.get_joint(1)) - np.deg2rad(self.selected_HAL.get_joint(2))
-            # around x
-            a = -HARD_CODED_ANGLE_RAD
-            # around z
-            c = np.deg2rad(self.selected_HAL.get_joint(0))
+            focal_len_pixels = focal_len * (self.sensor_res / self.sensor_size)
+            distance_to_object = focal_len_pixels * .02 / (2 * self.pixel_dia)
+            x_norm = self.error_x_distance / focal_len_pixels
+            y_norm = self.error_y_distance / focal_len_pixels
+            x_off = -math.tan(x_norm) * distance_to_object
+            y_off = math.tan(y_norm) * distance_to_object
+            print (f"x_off: {x_off}, y_off: {y_off}, depth: {math.pow(distance_to_object, 2) - math.pow(x_off, 2) - math.pow(y_off, 2)}")
+            # Calculate the depth (z) using the Pythagorean theorem
+            depth = math.sqrt(math.pow(distance_to_object, 2) - math.pow(x_off, 2) - math.pow(y_off, 2))
+
+            # Stage 3: Compute rotation matrices for current arm joint angles
+            # These matrices represent the orientation of the arm's end effector
+            b = -np.deg2rad(self.selected_HAL.get_joint(1)) - np.deg2rad(self.selected_HAL.get_joint(2))  # around y
+            a = -HARD_CODED_ANGLE_RAD  # around x
+            c = np.deg2rad(self.selected_HAL.get_joint(0))  # around z
             print(f"Around Y = {b}, Around Z = {c}")
             R_x = np.array([
                 [1, 0, 0],
@@ -312,20 +361,21 @@ class FollowClawController(Controller):
                 [np.cos(b), 0, -np.sin(b)],
                 [0, 1, 0],
                 [np.sin(b), 0, np.cos(b)]
-            ]
-            )
+            ])
             R_z = np.array([
                 [np.cos(c), np.sin(c), 0],
                 [-np.sin(c), np.cos(c), 0],
                 [0, 0, 1]
             ])
 
+            # Stage 4: Transform the offset to the arm's base frame
+            # Convert the camera offset into the arm's coordinate system
             offset_matrix = np.array([
                 x_off,
                 y_off,
                 depth
             ])
-            # First order matrix and transformation
+            # First order matrix and transformation (apply R_x)
             l1rot = R_x
             l1inv = np.linalg.inv(l1rot)
             l1sol = np.matmul(l1inv, offset_matrix)
@@ -334,14 +384,16 @@ class FollowClawController(Controller):
                 l1sol[1] + self.arm_params.kinematic_offset_y,
                 l1sol[2] + self.arm_params.kinematic_offset_z
             ])
-                # Second order matrix
+            # Second order matrix (apply R_y and R_z)
             matrix = np.matmul(R_y, R_z)
             inv_rot = np.linalg.inv(matrix)
             solution = np.matmul(inv_rot, l1tr)
-            # print(f"xOffset: {x_off}, yOffset: {y_off}, zOffset: {depth}")
+            # Negate y to match arm's coordinate system
             print(f"x:{solution[0]}, y: {solution[1]},z: {solution[2]}")
             solution[1] = -solution[1]
 
+            # Stage 5: Forward kinematics for current arm position
+            # Compute the current end effector position using DH parameters
             a1 = self.arm_params.a1
             a2 = self.arm_params.a2
             a3 = self.arm_params.a3
@@ -361,9 +413,16 @@ class FollowClawController(Controller):
             H0_4 = np.matmul(H0_3, H3_4)
             print(f"t1: {theta1}, t2: {theta2}, t3: {theta3}")
             print(f"FK: {self.convert(H0_4)}")
+
+            # Stage 6: Compute the target position for the arm
+            # Merge the current end effector position and the computed offset, convert to centimeters
             ballPosition = self.merge(self.convert(H0_4), solution) * M_TO_CM
             print(f"Final Ball Position (cm) {ballPosition}")
-            coordinate_input(ballPosition[0], ballPosition[1], ballPosition[2], self.selected_HAL, True, self.arm_params)
+
+            # Stage 7: Command the arm to move to the computed position
+            set_arm_target_position(ballPosition[0], ballPosition[1], ballPosition[2], self.selected_HAL, self.arm_params)
+
+            # Stage 8: Sleep briefly to control update rate (should be awaited if in async context)
             asyncio.sleep(FRAME_SLEEP_SECONDS)  #run detection every 1/30 seconds
 
     def select_largest_target_object(self, detected_objects: List[VisionObject]) -> VisionObject:
@@ -405,9 +464,6 @@ class FollowClawController(Controller):
             cv2.circle(draw_frame, center, obj.radius, (0, 255, 0), 2)
             cv2.circle(draw_frame, center, 7, (255, 255, 255), -1)
 
-    def controller_state(self,state):
-        self.use_controller = state
-
     async def update_frame_loop(self):
         while self.keep_running:
             if self.paused:
@@ -415,10 +471,8 @@ class FollowClawController(Controller):
             if self.use_controller:
                 await self.update_controller()
 
-    
-
     def get_frame_mask(self):
-        return cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) , self.mask
+        return cv2.resize(self.imageGetter.capture_image(), (0,0), fx=resize_fx, fy=resize_fy) , self.mask
     
     def calculate_sam_theta(self): 
         if self.object_found:
@@ -439,42 +493,10 @@ class FollowClawController(Controller):
             # set_joint(1, self.servo_1)
             self.selected_HAL.set_joint(2, self.servo_2)
 
-    async def update_controller(self) -> bool:
-        # CLOCK = 12
-        # LATCH = 16
-        # DATA = 18
-        # GPIO.output(LATCH, GPIO.HIGH) 
-        # asyncio.sleep(0.000012)
-        # GPIO.output(LATCH, GPIO.LOW) 
-        # asyncio.sleep(0.000006)
-        
-        # arr = [0,0,0,0,0,0,0,0]
-        # for i in range(8):
-        #     if (not GPIO.input(DATA)):
-        #         arr[i] = 1
-
-
-        #     GPIO.output(CLOCK, GPIO.HIGH) 
-        #     asyncio.sleep(0.000006)
-        #     GPIO.output(CLOCK, GPIO.LOW) 
-        #     asyncio.sleep(0.000006)
-        # if arr[0] == 1:
-        #     self.selected_HAL.set_joint(0, ((self.hal.get_joint(0)+360)%360) + .01)
-        # elif arr[1] == 1:
-        #     self.selected_HAL.set_joint(0, ((self.hal.get_joint(0)+360)%360) -.01)
-        # if arr[4] == 1:
-        #     self.selected_HAL.set_joint(1, self.hal.get_joint(1) +.01)
-        # elif arr[5] == 1:
-        #     self.selected_HAL.set_joint(1, self.hal.get_joint(1) -.01)
-        # if arr[6] == 1:
-        #     self.selected_HAL.set_joint(1, self.hal.get_joint(2) +.01)
-        # elif arr[7] == 1:
-        #     self.selected_HAL.set_joint(2, self.hal.get_joint(2) -.01)
-        pass
 
     async def update_frame(self) -> bool:
         print("x")
-        frame = cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) 
+        frame = cv2.resize(self.imageGetter.capture_image(), (0,0), fx=resize_fx, fy=resize_fy) 
         # pframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         # # For Sam Code ON physical****
         # pframe = cv2.flip(pframe, -1)
@@ -497,7 +519,7 @@ class FollowClawController(Controller):
             self.mask = cv2.flip(amask,-1)
             print('Object Found!')
         else: 
-            self.mask = cv2.resize(self.imageGetter.capture_image(), (0,0), resize_fx, resize_fy) 
+            self.mask = cv2.resize(self.imageGetter.capture_image(), (0,0), fx=resize_fx, fy=resize_fy) 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             await asyncio.sleep(0.03)  #run detection every 1/30 seconds
             return False
