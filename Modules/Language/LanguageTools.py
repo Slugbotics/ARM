@@ -1,4 +1,4 @@
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 from Modules.Language.LanguageInterpreterBase import LanguageInterpreterBase, tool
 import requests
 from typing import Callable

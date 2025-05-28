@@ -11,9 +11,9 @@ from kivy.lang.builder import Builder
 from kivy.properties import ObjectProperty
 from kivy.uix.tabbedpanel import TabbedPanel
 
-from Controllers import FollowClaw
-from Controllers.Controller import Controller
-from Controllers.FollowClaw import coordinate_input
+from Controllers import FollowObject3DControler
+from Controllers.Base.Controller import Controller
+from Controllers.FollowObject3DControler import coordinate_input
 from HALs.HAL_base import HAL_base
 from Modules.App.AppBase import AppBase
 from Vision.ColorObjectIdentifier import ColorObjectIdentifier
@@ -63,7 +63,7 @@ class Test(TabbedPanel):
     
     moveEvent = 0
 
-    def __init__(self, hal: HAL_base, controller: FollowClaw, vision: ColorObjectIdentifier, **kwargs, ):
+    def __init__(self, hal: HAL_base, controller: FollowObject3DControler, vision: ColorObjectIdentifier, **kwargs, ):
 
 
         self.hal = hal

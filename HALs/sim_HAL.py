@@ -138,17 +138,18 @@ class sim_HAL(HAL_base):
             return self.sim.getJointPosition(self.mtr[int(joint_index)]) * R_TO_D
 
     def get_arm_cam_img_rgb(self) -> cv2.typing.MatLike:
+        """Capture an image from the arm camera.
+        Returns:
+            cv2.typing.MatLike: The captured image in RGB format.
+        """
 
         with self.lock:
             image, resolution = self.sim.getVisionSensorImg(self.sensorHandle)
         image_data = unpack_uint8_table(image)
         image_array_rgb = np.array(image_data, dtype=np.uint8)
         image_array_rgb = np.reshape(image_array_rgb, (resolution[1], resolution[0], 3))
-        image_array_rgb_vertically_flipped = cv2.flip(image_array_rgb, 0)  # flip image vertically
-        # Convert the image from RGB to HSV color space
-        # hsv_image = cv2.cvtColor(image_array_rgb, cv2.COLOR_RGB2HSV)
 
-        return image_array_rgb_vertically_flipped
+        return image_array_rgb
     
     def calculate_focal_length(self, sim, sensor_handle):
         """

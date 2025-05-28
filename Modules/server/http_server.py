@@ -9,7 +9,7 @@ import cv2
 import base64
 import numpy as np
 
-from Controllers.Controller import Controller
+from Controllers.Base.Controller import Controller
 from HALs.HAL_base import HAL_base
 from Modules.server.ServerBase import ServerBase
 from Vision.ColorObjectIdentifier import ColorObjectIdentifier
