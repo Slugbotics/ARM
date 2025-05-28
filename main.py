@@ -15,7 +15,7 @@ from Config.ArmConfig import ArmConfig
 
 if __name__ == "__main__":
     # ----------------- LOGGING SETUP -----------------
-    log_filename = f"arm_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    log_filename = f"Logs/arm_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(message)s',
