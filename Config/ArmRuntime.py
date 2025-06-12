@@ -36,12 +36,12 @@ class ArmRuntime:
         self.console_input: ConsoleInput = ConsoleInput()
         
     def apply_config(self, config: Dict[str, Any]) -> None:
-        if config["write_logs"]:
+        if config.get("write_logs", False):
             from Modules.Logging.PrintLogger import PrintLogger
             self.selected_logger = PrintLogger()
             self.selected_logger.start()
 
-        if config["use_tts"]:
+        if config.get("use_tts", False):
             from Modules.text_to_speech.TTSBase import TTSBase
             from Modules.text_to_speech.pyttsx_tts import pyttsx_tts
             self.selected_tts: TTSBase = pyttsx_tts()
@@ -57,7 +57,7 @@ class ArmRuntime:
         register_controler_commands(self.commands, lambda: self.selected_controller)
         
         # Language stuff
-        if config["use_language_model"]:
+        if config.get("use_language_model", False):
             from Modules.Language.LanguageInterpreter import LanguageInterpreter
             print("language_model_file: \"" + str(config["language_model_file"]) + "\"")
             self.selected_language_interpreter = LanguageInterpreter(config["language_model_file"])
@@ -66,13 +66,13 @@ class ArmRuntime:
             self.commands.add_command("llm", lambda args: self.selected_voice.write_line(self.selected_language_interpreter.run(args)),
                                 "Runs the provided input on the language model")
         # HAL stuff
-        if config["use_simulator_hal"]:
+        if config.get("use_simulator_hal", False):
             from HALs.sim_HAL import sim_HAL
             self.selected_HAL = sim_HAL(config["sim_host"])
-        elif config["use_physical_hal"]:
+        elif config.get("use_physical_hal", False):
             from HALs.physical_HAL import physical_HAL
             self.selected_HAL = physical_HAL()
-        elif config["use_remote_hal"]:
+        elif config.get("use_remote_hal", False):
             if "remote_hal_ip" not in config or not config["remote_hal_ip"]:
                 print("ERROR: 'remote_hal_ip' is missing or invalid in the configuration.")
             elif "remote_hal_port" not in config or not config["remote_hal_port"]:
@@ -98,7 +98,7 @@ class ArmRuntime:
         self.selected_controller: Controller = FollowLargestObjectControler(self.selected_HAL, self.selected_object_identifier, "none")
 
         # App stuff
-        if config["use_app"]:
+        if config.get("use_app", False):
             # Kivy opens the window if this is imported, thus why it is here.
             from Modules.App.App import App
             from Controllers.FollowClaw import FollowClawController
@@ -107,7 +107,7 @@ class ArmRuntime:
             self.selected_app = App(self.selected_controller, self.selected_HAL, self.selected_object_identifier)
             
         # Server setup
-        if config["use_server"]:
+        if config.get("use_server", False):
             from Modules.server.http_server import HTTPServer
             new_host_port: int = 8000
             if "server_host_port" in config:
@@ -118,18 +118,18 @@ class ArmRuntime:
             self.selected_server: ServerBase = HTTPServer(self, new_host_port)
             
         # speech to text setup
-        if config["use_stt"]:
+        if config.get("use_stt", False):
             from Modules.speech_to_text.VoskSTT import VoskSTT
             
             def speech_input_handeler(input_str: str) -> None:
                 self.commands.user_input(input_str, Commands.Trust.TRUSTED, self.selected_stt)
             
             self.selected_stt: STTBase = VoskSTT(on_sentence_heard_fnc = speech_input_handeler)
-            if config["stt_model_large"]:
+            if config.get("stt_model_large", False):
                 self.selected_stt.set_selected_default_model(VoskSTT.DEFAULT_MODEL_LARGE)
                 
             self.selected_stt.start()    
-            if config["stt_push_to_talk"]:
+            if config.get("stt_push_to_talk", False):
                 print("Speech Recognition is in push to talk mode - press left-shift to activate")
                 def stt_activate():
                     if not self.selected_stt.is_active():                
@@ -144,7 +144,7 @@ class ArmRuntime:
                 self.hotkey_manager.add_key_release_callback(keyboard.Key.shift, stt_deactivate) 
                 
         # Twitch setup
-        if config["use_twitch"]:
+        if config.get("use_twitch", False):
             from Modules.twitch.TwitchChat import TwitchChat
             if config["twitch_id"] == "NONE":
                 print("Please set twitch_id to a valid twitch_id to use the twitch chat reader")
@@ -155,7 +155,7 @@ class ArmRuntime:
 
     def start(self, config: Dict[str, Any]) -> None:
         # Connect to twitch
-        if config["use_twitch"]:
+        if config.get("use_twitch", False):
             def twitch_input_handeler(input_str: str) -> None:
                 self.commands.user_input(input_str, Commands.Trust.SUS, self.selected_twitch)
             
@@ -165,7 +165,7 @@ class ArmRuntime:
         
     def stop(self, config: Dict[str, Any]) -> None:
         self.hotkey_manager.stop()
-        if config["use_twitch"]:
+        if config.get("use_twitch", False):
             self.selected_twitch.stop_twitch_chat()
             
         self.console_input.cleanup()
