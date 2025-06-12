@@ -37,7 +37,7 @@ if __name__ == "__main__":
     armRuntime.start(config) # start the rest of the modules
 
     # start listening to speech
-    if armRuntime.selected_stt is not None and not config["stt_push_to_talk"]:
+    if armRuntime.selected_stt is not None and not config.get("stt_push_to_talk", False):
         armRuntime.selected_stt.activate()
     
     if armRuntime.selected_tts is not None:
@@ -47,12 +47,12 @@ if __name__ == "__main__":
     
     # ----------------- MAIN PROGRAM LOOP -----------------
     # will capture main thread and run the input loop in a separate thread
-    if config["use_server"]:
+    if config.get("use_server", False):
         print("Server Startup")
         armRuntime.selected_server.start_server()
 
     # will capture main thread and run the input loop in a separate thread
-    if config["use_app"]:
+    if config.get("use_app", False):
         try:
             armRuntime.console_input.run_input_looping_async()
             armRuntime.selected_app.start_app()
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 keep_running = False
         
     # if we are not using the server or the app, we will run the input loop in the main thread
-    if not config["use_app"]:
+    if not config.get("use_app", False):
         while keep_running:
             print("Arm is running, press 'q' or ctrl-c to quit")
             try:
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     print("Arm shutdown complete")
     
     # Reopen Startup page
-    if config["open_startup_page"]:
+    if config.get("open_startup_page", False):
         subprocess.Popen(['python', 'ArmTeam/startup.py'])
 
     # ----------------- END CLEAUP / SHUTDOWN -----------------
