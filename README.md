@@ -13,7 +13,8 @@ To use this project, new members should create a fork.
 
 ## 1) Run
 If you are running Linux, make sure to ```source venv/bin/activate```
-Run ```python main.py --help``` to see the command line arguments.
+Run ```python main.py``` to start the python control of the arm.
+This will start the website controls, and the program will put a http link in the console window for you to access the arm control website.
 If using the simulator, make sure CoppeliaSim is running our scene (double click on simulator/armSIM(3dof).ttt)
 
 If you want to use twitch for video output (great for remote control!) you will need to open OBS and add a source

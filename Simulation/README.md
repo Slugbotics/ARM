@@ -10,16 +10,15 @@ This repository contains files and scripts for simulating an arm using CoppeliaS
     ```
 
 3. **File Contents**:
-    - `armSIM.ttt`: CoppeliaSim simulation file.
-    - `ARM_SIM.py`: Python script for remote API communication with the CoppeliaSim simulation file.
-    - `kinematicsPYV1.py`: Python script for kinematics calculations.
+    - `armSIM(3dof).ttt`: CoppeliaSim simulation file.
+    - `clawArmSim(3DoF)`: CoppeliaSim simulation file with our custom claw.
     - `kinematics.m`: MATLAB script for kinematics calculations.
 
 ## Usage
 
-1. **Start CoppeliaSim**: Launch CoppeliaSim and open the `armSIM.ttt` simulation file.
+1. **Start CoppeliaSim**: Launch CoppeliaSim and open the `armSIM(3dof).ttt` simulation file.
 
-2. **Run Python Script**: Execute the `ARM_SIM.py` Python script. This script communicates with CoppeliaSim and controls the arm simulation.
+2. **Run Python Script**: Execute the `main.py` Python script in the root folder (up one from here). This script communicates with CoppeliaSim and controls the arm simulation.
 
 3. **Watch the Simulation**: Observe the arm movement in the CoppeliaSim environment as controlled by the Python script.
 
